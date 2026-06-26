@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { ContextMenu as ContextMenuPrimitive } from "radix-ui"
+import { ContextMenu as ContextMenuPrimitive } from "@repo/shadcn-ui/lib/base-ui"
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 
 import { cn } from "@repo/shadcn-ui/lib/utils"

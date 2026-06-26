@@ -1,6 +1,5 @@
 "use client";
 
-import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { Button } from "@repo/shadcn-ui/components/ui/button";
 import {
   Command,
@@ -26,6 +25,8 @@ import {
   useRef,
   useState,
 } from "react";
+
+import { useControllableState } from "./use-controllable-state";
 
 const deviceIdRegex = /\(([\da-fA-F]{4}:[\da-fA-F]{4})\)$/;
 

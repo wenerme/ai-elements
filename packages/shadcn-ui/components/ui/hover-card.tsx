@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { HoverCard as HoverCardPrimitive } from "radix-ui"
+import { HoverCard as HoverCardPrimitive } from "@repo/shadcn-ui/lib/base-ui"
 
 import { cn } from "@repo/shadcn-ui/lib/utils"
 

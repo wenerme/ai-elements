@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Label as LabelPrimitive, Slot as SlotPrimitive } from "radix-ui"
+import { Label as LabelPrimitive, Slot as SlotPrimitive } from "@repo/shadcn-ui/lib/base-ui"
 
 import {
   Controller,

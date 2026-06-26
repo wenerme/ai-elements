@@ -1,6 +1,5 @@
 "use client";
 
-import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { Button } from "@repo/shadcn-ui/components/ui/button";
 import {
   Collapsible,
@@ -25,6 +24,8 @@ import {
   useRef,
   useState,
 } from "react";
+
+import { useControllableState } from "./use-controllable-state";
 
 // Regex patterns for parsing stack traces
 const STACK_FRAME_WITH_PARENS_REGEX = /^at\s+(.+?)\s+\((.+):(\d+):(\d+)\)$/;

@@ -50,7 +50,7 @@ import { cn } from "@repo/shadcn-ui/lib/utils";
 import { DefaultChatTransport } from "ai";
 import { useLiveQuery } from "dexie-react-hooks";
 import { ChevronRightIcon, MessagesSquareIcon, Trash } from "lucide-react";
-import { Portal } from "radix-ui";
+import { Portal } from "@repo/shadcn-ui/lib/base-ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 

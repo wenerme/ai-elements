@@ -1,6 +1,5 @@
 "use client";
 
-import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import { Button } from "@repo/shadcn-ui/components/ui/button";
 import {
   Command,
@@ -34,6 +33,8 @@ import {
 } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
+
+import { useControllableState } from "./use-controllable-state";
 
 interface VoiceSelectorContextValue {
   value: string | undefined;

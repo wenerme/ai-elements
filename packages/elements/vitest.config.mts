@@ -15,6 +15,10 @@ export default defineConfig({
         import.meta.dirname,
         "../shadcn-ui/components"
       ),
+      "@repo/shadcn-ui/lib/base-ui": path.resolve(
+        import.meta.dirname,
+        "../shadcn-ui/lib/base-ui.ts"
+      ),
       "@repo/shadcn-ui/lib/utils": path.resolve(
         import.meta.dirname,
         "../shadcn-ui/lib/utils.ts"

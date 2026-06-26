@@ -1,15 +1,54 @@
 "use client"
 
 import * as React from "react"
-import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
+import { DropdownMenu as DropdownMenuPrimitive } from "@repo/shadcn-ui/lib/base-ui"
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 
 import { cn } from "@repo/shadcn-ui/lib/utils"
 
+type DropdownMenuContextValue = {
+  setOpen?: (open: boolean) => void
+}
+
+const DropdownMenuContext = React.createContext<DropdownMenuContextValue>({})
+
 function DropdownMenu({
+  open,
+  defaultOpen,
+  onOpenChange,
+  children,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
-  return <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(
+    Boolean(defaultOpen)
+  )
+  const isControlled = open !== undefined
+  const currentOpen = isControlled ? open : uncontrolledOpen
+
+  const setOpen = React.useCallback(
+    (nextOpen: boolean) => {
+      if (!isControlled) {
+        setUncontrolledOpen(nextOpen)
+      }
+      onOpenChange?.(nextOpen)
+    },
+    [isControlled, onOpenChange]
+  )
+
+  const contextValue = React.useMemo(() => ({ setOpen }), [setOpen])
+
+  return (
+    <DropdownMenuContext.Provider value={contextValue}>
+      <DropdownMenuPrimitive.Root
+        data-slot="dropdown-menu"
+        open={currentOpen}
+        onOpenChange={setOpen}
+        {...props}
+      >
+        {children}
+      </DropdownMenuPrimitive.Root>
+    </DropdownMenuContext.Provider>
+  )
 }
 
 function DropdownMenuPortal({
@@ -21,11 +60,20 @@ function DropdownMenuPortal({
 }
 
 function DropdownMenuTrigger({
+  onClick,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
+  const { setOpen } = React.useContext(DropdownMenuContext)
+
   return (
     <DropdownMenuPrimitive.Trigger
       data-slot="dropdown-menu-trigger"
+      onClick={(event: React.MouseEvent<HTMLElement>) => {
+        onClick?.(event)
+        if (!event.defaultPrevented) {
+          setOpen?.(true)
+        }
+      }}
       {...props}
     />
   )
@@ -62,12 +110,17 @@ function DropdownMenuGroup({
 function DropdownMenuItem({
   className,
   inset,
+  onClick,
+  onSelect,
   variant = "default",
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Item> & {
   inset?: boolean
+  onSelect?: (event: Event) => void
   variant?: "default" | "destructive"
 }) {
+  const { setOpen } = React.useContext(DropdownMenuContext)
+
   return (
     <DropdownMenuPrimitive.Item
       data-slot="dropdown-menu-item"
@@ -78,6 +131,17 @@ function DropdownMenuItem({
         className
       )}
       {...props}
+      onClick={(event: React.MouseEvent<HTMLElement>) => {
+        onClick?.(event)
+        if (event.defaultPrevented) {
+          return
+        }
+
+        onSelect?.(event.nativeEvent)
+        if (!event.nativeEvent.defaultPrevented) {
+          setOpen?.(false)
+        }
+      }}
     />
   )
 }

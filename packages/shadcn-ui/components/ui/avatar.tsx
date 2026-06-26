@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Avatar as AvatarPrimitive } from "radix-ui"
+import { Avatar as AvatarPrimitive } from "@repo/shadcn-ui/lib/base-ui"
 
 import { cn } from "@repo/shadcn-ui/lib/utils"
 

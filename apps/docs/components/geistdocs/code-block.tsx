@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import * as React from "react";
 
 import { Button } from "@repo/shadcn-ui/components/ui/button";
 import {

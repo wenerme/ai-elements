@@ -1,6 +1,6 @@
 "use client"
 
-import { AspectRatio as AspectRatioPrimitive } from "radix-ui"
+import { AspectRatio as AspectRatioPrimitive } from "@repo/shadcn-ui/lib/base-ui"
 
 function AspectRatio({
   ...props

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Slot as SlotPrimitive } from "radix-ui"
+import { SlotRoot } from "@repo/shadcn-ui/lib/base-ui"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@repo/shadcn-ui/lib/utils"
@@ -46,7 +46,7 @@ function Button({
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
-  const Comp = asChild ? SlotPrimitive.Slot : "button"
+  const Comp = asChild ? SlotRoot : "button"
 
   return (
     <Comp

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Slider as SliderPrimitive } from "radix-ui"
+import { Slider as SliderPrimitive } from "@repo/shadcn-ui/lib/base-ui"
 
 import { cn } from "@repo/shadcn-ui/lib/utils"
 

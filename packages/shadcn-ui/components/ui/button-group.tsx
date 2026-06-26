@@ -1,4 +1,4 @@
-import { Slot as SlotPrimitive } from "radix-ui"
+import { SlotRoot } from "@repo/shadcn-ui/lib/base-ui"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@repo/shadcn-ui/lib/utils"
@@ -44,7 +44,7 @@ function ButtonGroupText({
 }: React.ComponentProps<"div"> & {
   asChild?: boolean
 }) {
-  const Comp = asChild ? SlotPrimitive.Slot : "div"
+  const Comp = asChild ? SlotRoot : "div"
 
   return (
     <Comp

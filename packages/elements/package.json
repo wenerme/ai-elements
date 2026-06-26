@@ -12,7 +12,6 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@repo/shadcn-ui": "workspace:*",
     "@rive-app/react-webgl2": "^4.26.1",
     "@streamdown/cjk": "^1.0.2",

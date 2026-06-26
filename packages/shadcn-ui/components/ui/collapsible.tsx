@@ -1,6 +1,6 @@
 "use client"
 
-import { Collapsible as CollapsiblePrimitive } from "radix-ui"
+import { Collapsible as CollapsiblePrimitive } from "@repo/shadcn-ui/lib/base-ui"
 
 function Collapsible({
   ...props

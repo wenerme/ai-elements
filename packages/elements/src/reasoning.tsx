@@ -1,6 +1,5 @@
 "use client";
 
-import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import {
   Collapsible,
   CollapsibleContent,
@@ -26,6 +25,7 @@ import {
 import { Streamdown } from "streamdown";
 
 import { Shimmer } from "./shimmer";
+import { useControllableState } from "./use-controllable-state";
 
 interface ReasoningContextValue {
   isStreaming: boolean;
