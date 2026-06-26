@@ -6,6 +6,7 @@ import { Navbar } from "@/components/geistdocs/navbar";
 import { GeistdocsProvider } from "@/components/geistdocs/provider";
 import { basePath } from "@/geistdocs";
 import { mono, sans } from "@/lib/geistdocs/fonts";
+import { i18nProvider } from "@/lib/geistdocs/i18n";
 
 import "katex/dist/katex.min.css";
 
@@ -19,7 +20,7 @@ const Layout = async ({ children, params }: LayoutProps<"/[lang]">) => {
       suppressHydrationWarning
     >
       <body>
-        <GeistdocsProvider basePath={basePath} lang={lang}>
+        <GeistdocsProvider basePath={basePath} i18n={i18nProvider(lang)}>
           <Navbar />
           {children}
           <Footer />

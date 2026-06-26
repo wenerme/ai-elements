@@ -6,23 +6,23 @@
     "dev": "turbo run dev",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
-    "check": "ultracite check",
-    "fix": "ultracite fix",
+    "check": "oxfmt --check . && oxlint .",
+    "fix": "oxfmt --write . && oxlint --fix .",
     "bump-deps": "npx npm-check-updates --deep -u -x recharts,react-resizable-panels && pnpm install",
     "bump-ui": "npx shadcn@latest add --all --overwrite -c packages/shadcn-ui && npx shadcn@latest migrate radix -c packages/shadcn-ui",
     "changeset": "changeset",
     "generate-skills": "pnpm --filter @repo/scripts generate-skills"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.8",
-    "@vitest/browser-playwright": "^4.0.17",
-    "@vitest/browser-preview": "^4.0.17",
-    "oxfmt": "^0.28.0",
-    "oxlint": "^1.43.0",
-    "turbo": "2.8.14",
-    "typescript": "5.9.3",
+    "@changesets/cli": "^2.31.0",
+    "@vitest/browser-playwright": "^4.1.9",
+    "@vitest/browser-preview": "^4.1.9",
+    "oxfmt": "^0.56.0",
+    "oxlint": "1.43.0",
+    "turbo": "2.10.0",
+    "typescript": "6.0.3",
     "ultracite": "7.1.4",
-    "vitest": "^4.0.17"
+    "vitest": "^4.1.9"
   },
   "engines": {
     "node": ">=20.12"

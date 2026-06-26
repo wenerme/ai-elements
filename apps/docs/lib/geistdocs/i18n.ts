@@ -9,6 +9,4 @@ export const i18n = defineI18n({
   languages: Object.keys(translations),
 });
 
-export const { provider: i18nProvider } = defineI18nUI(i18n, {
-  translations,
-});
+export const { provider: i18nProvider } = defineI18nUI(i18n, translations);

@@ -2,8 +2,6 @@ import type { ComponentProps, CSSProperties, ReactNode } from "react";
 
 import { DocsLayout as FumadocsDocsLayout } from "fumadocs-ui/layouts/docs";
 
-import { i18n } from "@/lib/geistdocs/i18n";
-
 import { Folder, Item, Separator, Sidebar } from "./sidebar";
 
 interface HomeLayoutProps {
@@ -21,7 +19,7 @@ export const HomeLayout = ({ tree, children }: HomeLayoutProps) => (
         flexDirection: "column",
       } as CSSProperties,
     }}
-    i18n={i18n}
+    i18n={false}
     nav={{
       enabled: false,
     }}

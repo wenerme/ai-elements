@@ -22,6 +22,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { PluginConfig } from "streamdown";
 import { Streamdown } from "streamdown";
 
 import { Shimmer } from "./shimmer";
@@ -204,7 +205,12 @@ export type ReasoningContentProps = ComponentProps<
   children: string;
 };
 
-const streamdownPlugins = { cjk, code, math, mermaid };
+const streamdownPlugins: PluginConfig = {
+  cjk,
+  code: code as unknown as PluginConfig["code"],
+  math,
+  mermaid,
+};
 
 export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (

@@ -8,8 +8,6 @@ import {
   Separator,
   Sidebar,
 } from "@/components/geistdocs/sidebar";
-import { i18n } from "@/lib/geistdocs/i18n";
-
 interface DocsLayoutProps {
   tree: ComponentProps<typeof FumadocsDocsLayout>["tree"];
   children: ReactNode;
@@ -22,7 +20,7 @@ export const DocsLayout = ({ tree, children }: DocsLayoutProps) => (
         "--fd-docs-row-1": "4rem",
       } as CSSProperties,
     }}
-    i18n={i18n}
+    i18n={false}
     nav={{
       enabled: false,
     }}

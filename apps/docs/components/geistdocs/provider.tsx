@@ -13,21 +13,19 @@ import { RootProvider } from "fumadocs-ui/provider/next";
 import { useCallback } from "react";
 
 import { useChatContext } from "@/hooks/geistdocs/use-chat";
-import { i18n, i18nProvider } from "@/lib/geistdocs/i18n";
 
 import { SearchDialog } from "./search";
 
 type GeistdocsProviderProps = ComponentProps<typeof RootProvider> & {
   basePath: string | undefined;
   className?: string;
-  lang?: string;
 };
 
 export const GeistdocsProvider = ({
   basePath,
   search,
   className,
-  lang = i18n.defaultLanguage,
+  i18n,
   ...props
 }: GeistdocsProviderProps) => {
   const { isOpen } = useChatContext();
@@ -49,7 +47,7 @@ export const GeistdocsProvider = ({
     >
       <TooltipProvider>
         <RootProvider
-          i18n={i18nProvider(lang)}
+          i18n={i18n}
           search={{
             SearchDialog: SearchDialogComponent,
             ...search,

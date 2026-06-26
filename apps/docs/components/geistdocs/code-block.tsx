@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import * as React from "react";
 
 import { Button } from "@repo/shadcn-ui/components/ui/button";
@@ -15,12 +15,8 @@ import { CheckIcon, CopyIcon } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
-interface CodeBlockProps {
-  children: ReactNode;
-  className?: string;
+interface CodeBlockProps extends ComponentProps<"pre"> {
   icon?: ReactNode;
-  style?: CSSProperties;
-  tabIndex?: number;
   title?: string;
   "data-line-numbers"?: string;
   "data-line-highlighting"?: string;

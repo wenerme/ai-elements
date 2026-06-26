@@ -6,6 +6,7 @@
     "./node_modules/ultracite/config/oxlint/react/.oxlintrc.json"
   ],
   "ignorePatterns": [
+    ".agents",
     "packages/shadcn-ui",
     "apps/docs/components/geistdocs",
     "apps/docs/lib/geistdocs",
