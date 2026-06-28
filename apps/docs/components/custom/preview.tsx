@@ -2,7 +2,7 @@
 // oxlint-disable-next-line eslint-plugin-import(no-nodejs-modules)
 import { readFile } from "node:fs/promises";
 // oxlint-disable-next-line eslint-plugin-import(no-nodejs-modules)
-import { join } from "node:path";
+import nodePath from "node:path";
 
 import { CodeBlock } from "@repo/elements/src/code-block";
 import {
@@ -26,7 +26,7 @@ interface ComponentPreviewProps {
 
 export const Preview = async ({ path, className }: ComponentPreviewProps) => {
   const code = await readFile(
-    join(
+    nodePath.join(
       process.cwd(),
       "..",
       "..",
@@ -35,7 +35,7 @@ export const Preview = async ({ path, className }: ComponentPreviewProps) => {
       "src",
       `${path}.tsx`
     ),
-    "utf8"
+    "utf-8"
   );
 
   const Component = await import(`@repo/examples/src/${path}.tsx`).then(

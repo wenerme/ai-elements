@@ -29,14 +29,13 @@ import type {
 } from "shiki";
 import { createHighlighter } from "shiki";
 
-// Shiki uses bitflags for font styles: 1=italic, 2=bold, 4=underline
-// oxlint-disable-next-line eslint(no-bitwise)
-const isItalic = (fontStyle: number | undefined) => fontStyle && fontStyle & 1;
-// oxlint-disable-next-line eslint(no-bitwise)
-const isBold = (fontStyle: number | undefined) => fontStyle && fontStyle & 2;
+// Shiki uses additive bitflags for font styles: 1=italic, 2=bold, 4=underline.
+const hasFontStyle = (fontStyle: number | undefined, flag: number) =>
+  fontStyle !== undefined && Math.floor(fontStyle / flag) % 2 === 1;
+const isItalic = (fontStyle: number | undefined) => hasFontStyle(fontStyle, 1);
+const isBold = (fontStyle: number | undefined) => hasFontStyle(fontStyle, 2);
 const isUnderline = (fontStyle: number | undefined) =>
-  // oxlint-disable-next-line eslint(no-bitwise)
-  fontStyle && fontStyle & 4;
+  hasFontStyle(fontStyle, 4);
 
 // Transform tokens to include pre-computed keys to avoid noArrayIndexKey lint
 interface KeyedToken {

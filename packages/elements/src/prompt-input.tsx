@@ -86,9 +86,7 @@ const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
     // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
     return new Promise((resolve) => {
       const reader = new FileReader();
-      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
       reader.onloadend = () => resolve(reader.result as string);
-      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
@@ -121,9 +119,7 @@ const captureScreenshot = async (): Promise<File | null> => {
     // Video element uses callback-based API, wrapping in Promise is necessary
     // oxlint-disable-next-line eslint-plugin-promise(avoid-new)
     await new Promise<void>((resolve, reject) => {
-      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
       video.onloadedmetadata = () => resolve();
-      // oxlint-disable-next-line eslint-plugin-unicorn(prefer-add-event-listener)
       video.onerror = () => reject(new Error("Failed to load screen stream"));
     });
 
@@ -155,7 +151,7 @@ const captureScreenshot = async (): Promise<File | null> => {
 
     const timestamp = new Date()
       .toISOString()
-      .replaceAll(/[:.]/g, "-")
+      .replaceAll(/[:.]/gu, "-")
       .replace("T", "_")
       .replace("Z", "");
 
@@ -258,7 +254,6 @@ export const PromptInputProvider = ({
     (FileUIPart & { id: string })[]
   >([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  // oxlint-disable-next-line eslint(no-empty-function)
   const openRef = useRef<() => void>(() => {});
 
   const add = useCallback((files: File[] | FileList) => {

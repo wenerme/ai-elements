@@ -2,7 +2,7 @@
 // oxlint-disable-next-line eslint-plugin-import(no-nodejs-modules)
 import { readFile } from "node:fs/promises";
 // oxlint-disable-next-line eslint-plugin-import(no-nodejs-modules)
-import { join } from "node:path";
+import nodePath from "node:path";
 
 import { cn } from "@repo/shadcn-ui/lib/utils";
 import { codeToHtml } from "shiki";
@@ -16,7 +16,7 @@ interface SourceCodeProps {
 
 export const SourceCode = async ({ path, className }: SourceCodeProps) => {
   const code = await readFile(
-    join(
+    nodePath.join(
       process.cwd(),
       "..",
       "..",
@@ -25,7 +25,7 @@ export const SourceCode = async ({ path, className }: SourceCodeProps) => {
       "src",
       `${path}.tsx`
     ),
-    "utf8"
+    "utf-8"
   );
 
   const parsedCode = code

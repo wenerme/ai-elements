@@ -28,7 +28,7 @@ import {
 
 import { useControllableState } from "./use-controllable-state";
 
-const deviceIdRegex = /\(([\da-fA-F]{4}:[\da-fA-F]{4})\)$/;
+const deviceIdRegex = /\((?<deviceId>[\da-fA-F]{4}:[\da-fA-F]{4})\)$/u;
 
 interface MicSelectorContextType {
   data: MediaDeviceInfo[];

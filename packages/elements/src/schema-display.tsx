@@ -99,8 +99,8 @@ export const SchemaDisplayPath = ({
 
   // Highlight path parameters
   const highlightedPath = path.replaceAll(
-    /\{([^}]+)\}/g,
-    '<span class="text-blue-600 dark:text-blue-400">{$1}</span>'
+    /\{(?<parameter>[^}]+)\}/gu,
+    '<span class="text-blue-600 dark:text-blue-400">{$<parameter>}</span>'
   );
 
   return (

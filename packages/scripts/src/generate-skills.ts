@@ -4,23 +4,23 @@ import { existsSync, mkdirSync, rmSync } from "node:fs";
 // oxlint-disable-next-line eslint-plugin-import(no-nodejs-modules)
 import { readdir, readFile, writeFile } from "node:fs/promises";
 // oxlint-disable-next-line eslint-plugin-import(no-nodejs-modules)
-import { basename, join } from "node:path";
+import nodePath from "node:path";
 
 import matter from "gray-matter";
 
-const ROOT_DIR = join(import.meta.dirname, "../../..");
-const CONTENT_DIR = join(ROOT_DIR, "apps/docs/content");
-const COMPONENTS_DIR = join(CONTENT_DIR, "components");
-const EXAMPLES_DIR = join(ROOT_DIR, "packages/examples/src");
-const SKILLS_DIR = join(ROOT_DIR, "skills");
-const SKILL_DIR = join(SKILLS_DIR, "ai-elements");
+const ROOT_DIR = nodePath.join(import.meta.dirname, "../../..");
+const CONTENT_DIR = nodePath.join(ROOT_DIR, "apps/docs/content");
+const COMPONENTS_DIR = nodePath.join(CONTENT_DIR, "components");
+const EXAMPLES_DIR = nodePath.join(ROOT_DIR, "packages/examples/src");
+const SKILLS_DIR = nodePath.join(ROOT_DIR, "skills");
+const SKILL_DIR = nodePath.join(SKILLS_DIR, "ai-elements");
 
 const discoverMdxFiles = async (dir: string): Promise<string[]> => {
   const results: string[] = [];
   const entries = await readdir(dir, { withFileTypes: true });
 
   for (const entry of entries) {
-    const fullPath = join(dir, entry.name);
+    const fullPath = nodePath.join(dir, entry.name);
     if (entry.isDirectory()) {
       results.push(...(await discoverMdxFiles(fullPath)));
     } else if (entry.name.endsWith(".mdx")) {
@@ -33,22 +33,28 @@ const discoverMdxFiles = async (dir: string): Promise<string[]> => {
 
 const replacePreviews = (content: string): string =>
   content.replaceAll(
-    /<Preview\s+path=["']([^"']+)["']\s*\/>/g,
-    (_, path) => `See \`scripts/${path}.tsx\` for this example.`
+    /<Preview\s+path=["'](?<path>[^"']+)["']\s*\/>/gu,
+    (...args) => {
+      const groups = args.at(-1) as { path: string };
+      return `See \`scripts/${groups.path}.tsx\` for this example.`;
+    }
   );
 
 const replaceInstaller = (content: string): string =>
   content.replaceAll(
-    /<ElementsInstaller\s+path=["']([^"']+)["']\s*\/>/g,
-    (_, component) =>
-      `\`\`\`bash\nnpx ai-elements@latest add ${component}\n\`\`\``
+    /<ElementsInstaller\s+path=["'](?<component>[^"']+)["']\s*\/>/gu,
+    (...args) => {
+      const groups = args.at(-1) as { component: string };
+      return `\`\`\`bash\nnpx ai-elements@latest add ${groups.component}\n\`\`\``;
+    }
   );
 
-const PROP_REGEX = /['"]?([^'":\s]+)['"]?\s*:\s*\{([^}]+)\}/g;
-const DESC_REGEX = /description:\s*['"]([^'"]+)['"]/;
-const TYPE_REGEX = /type:\s*['"]([^'"]+)['"]/;
-const DEFAULT_REGEX = /default:\s*['"]([^'"]+)['"]/;
-const REQUIRED_REGEX = /required:\s*true/;
+const PROP_REGEX =
+  /['"]?(?<propName>[^'":\s]+)['"]?\s*:\s*\{(?<propBody>[^}]+)\}/gu;
+const DESC_REGEX = /description:\s*['"](?<description>[^'"]+)['"]/u;
+const TYPE_REGEX = /type:\s*['"](?<type>[^'"]+)['"]/u;
+const DEFAULT_REGEX = /default:\s*['"](?<defaultValue>[^'"]+)['"]/u;
+const REQUIRED_REGEX = /required:\s*true/u;
 
 const parseTypeTableProps = (
   typeContent: string
@@ -70,7 +76,7 @@ const parseTypeTableProps = (
   const matches = typeContent.matchAll(PROP_REGEX);
 
   for (const match of matches) {
-    const [, propName, propBody] = match;
+    const { propBody = "", propName = "" } = match.groups ?? {};
 
     const descMatch = propBody.match(DESC_REGEX);
     const typeMatch = propBody.match(TYPE_REGEX);
@@ -78,11 +84,11 @@ const parseTypeTableProps = (
     const requiredMatch = propBody.match(REQUIRED_REGEX);
 
     props.push({
-      default: defaultMatch?.[1],
-      description: descMatch?.[1] || "",
+      default: defaultMatch?.groups?.defaultValue,
+      description: descMatch?.groups?.description || "",
       name: propName,
       required: !!requiredMatch,
-      type: typeMatch?.[1] || "unknown",
+      type: typeMatch?.groups?.type || "unknown",
     });
   }
 
@@ -90,9 +96,11 @@ const parseTypeTableProps = (
 };
 
 const replaceTypeTables = (content: string): string => {
-  const typeTableRegex = /<TypeTable\s+type=\{\{([\s\S]*?)\}\}\s*\/>/g;
+  const typeTableRegex =
+    /<TypeTable\s+type=\{\{(?<typeContent>[\s\S]*?)\}\}\s*\/>/gu;
 
-  return content.replace(typeTableRegex, (_, typeContent) => {
+  return content.replace(typeTableRegex, (...args) => {
+    const { typeContent = "" } = args.at(-1) as { typeContent?: string };
     const props = parseTypeTableProps(typeContent);
 
     if (props.length === 0) {
@@ -115,12 +123,12 @@ const replaceTypeTables = (content: string): string => {
       "| Prop | Type | Default | Description |",
       "|------|------|---------|-------------|",
       ...rows,
-    ].join("\n");
+    ].nodePath.join("\n");
   });
 };
 
 const removeCallouts = (content: string): string =>
-  content.replaceAll(/<Callout[^>]*>[\s\S]*?<\/Callout>/g, "");
+  content.replaceAll(/<Callout[^>]*>[\s\S]*?<\/Callout>/gu, "");
 
 const transformComponentMdx = (fileContent: string): string => {
   const { content } = matter(fileContent);
@@ -149,8 +157,8 @@ const findMatchingExamples = async (
 };
 
 const cleanGeneratedDirs = (): void => {
-  const referencesDir = join(SKILL_DIR, "references");
-  const scriptsDir = join(SKILL_DIR, "scripts");
+  const referencesDir = nodePath.join(SKILL_DIR, "references");
+  const scriptsDir = nodePath.join(SKILL_DIR, "scripts");
 
   if (existsSync(referencesDir)) {
     rmSync(referencesDir, { recursive: true });
@@ -163,11 +171,11 @@ const cleanGeneratedDirs = (): void => {
 };
 
 const processComponent = async (mdxPath: string): Promise<number> => {
-  const componentName = basename(mdxPath, ".mdx");
-  const referencesDir = join(SKILL_DIR, "references");
-  const scriptsDir = join(SKILL_DIR, "scripts");
+  const componentName = nodePath.basename(mdxPath, ".mdx");
+  const referencesDir = nodePath.join(SKILL_DIR, "references");
+  const scriptsDir = nodePath.join(SKILL_DIR, "scripts");
 
-  const fileContent = await readFile(mdxPath, "utf8");
+  const fileContent = await readFile(mdxPath, "utf-8");
   const { data } = matter(fileContent);
 
   const referenceContent = `# ${data.title}
@@ -178,7 +186,10 @@ ${transformComponentMdx(fileContent)}
 `;
 
   mkdirSync(referencesDir, { recursive: true });
-  await writeFile(join(referencesDir, `${componentName}.md`), referenceContent);
+  await writeFile(
+    nodePath.join(referencesDir, `${componentName}.md`),
+    referenceContent
+  );
 
   const examples = await findMatchingExamples(componentName);
 
@@ -186,13 +197,13 @@ ${transformComponentMdx(fileContent)}
     mkdirSync(scriptsDir, { recursive: true });
     for (const example of examples) {
       const exampleContent = await readFile(
-        join(EXAMPLES_DIR, example),
-        "utf8"
+        nodePath.join(EXAMPLES_DIR, example),
+        "utf-8"
       );
       const transformedContent = exampleContent
         .replaceAll("@repo/shadcn-ui/", "@/")
         .replaceAll("@repo/elements/", "@/components/ai-elements/");
-      await writeFile(join(scriptsDir, example), transformedContent);
+      await writeFile(nodePath.join(scriptsDir, example), transformedContent);
     }
   }
 

@@ -30,7 +30,8 @@ interface JSXPreviewContextValue {
 
 const JSXPreviewContext = createContext<JSXPreviewContextValue | null>(null);
 
-const TAG_REGEX = /<\/?([a-zA-Z][a-zA-Z0-9]*)\s*([^>]*?)(\/)?>/;
+const TAG_REGEX =
+  /<\/?(?<tagName>[a-zA-Z][a-zA-Z0-9]*)\s*(?<attributes>[^>]*?)(?<selfClosing>\/)?>/u;
 
 export const useJSXPreview = () => {
   const context = useContext(JSXPreviewContext);
@@ -51,7 +52,8 @@ const matchJsxTag = (code: string) => {
     return null;
   }
 
-  const [fullMatch, tagName, attributes, selfClosing] = match;
+  const [fullMatch] = match;
+  const { attributes = "", selfClosing, tagName = "" } = match.groups ?? {};
 
   let type: "self-closing" | "closing" | "opening";
   if (selfClosing) {

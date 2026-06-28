@@ -28,10 +28,12 @@ import {
 import { useControllableState } from "./use-controllable-state";
 
 // Regex patterns for parsing stack traces
-const STACK_FRAME_WITH_PARENS_REGEX = /^at\s+(.+?)\s+\((.+):(\d+):(\d+)\)$/;
-const STACK_FRAME_WITHOUT_FN_REGEX = /^at\s+(.+):(\d+):(\d+)$/;
-const ERROR_TYPE_REGEX = /^(\w+Error|Error):\s*(.*)$/;
-const AT_PREFIX_REGEX = /^at\s+/;
+const STACK_FRAME_WITH_PARENS_REGEX =
+  /^at\s+(?<functionName>.+?)\s+\((?<filePath>.+):(?<lineNumber>\d+):(?<columnNumber>\d+)\)$/u;
+const STACK_FRAME_WITHOUT_FN_REGEX =
+  /^at\s+(?<filePath>.+):(?<lineNumber>\d+):(?<columnNumber>\d+)$/u;
+const ERROR_TYPE_REGEX = /^(?<type>\w+Error|Error):\s*(?<message>.*)$/u;
+const AT_PREFIX_REGEX = /^at\s+/u;
 
 interface StackFrame {
   raw: string;
@@ -72,36 +74,37 @@ const parseStackFrame = (line: string): StackFrame => {
 
   // Pattern: at functionName (filePath:line:column)
   const withParensMatch = trimmed.match(STACK_FRAME_WITH_PARENS_REGEX);
-  if (withParensMatch) {
-    const [, functionName, filePath, lineNum, colNum] = withParensMatch;
+  if (withParensMatch?.groups) {
+    const { columnNumber, filePath, functionName, lineNumber } =
+      withParensMatch.groups;
     const isInternal =
       filePath.includes("node_modules") ||
       filePath.startsWith("node:") ||
       filePath.includes("internal/");
     return {
-      columnNumber: colNum ? Number.parseInt(colNum, 10) : null,
+      columnNumber: columnNumber ? Number.parseInt(columnNumber, 10) : null,
       filePath: filePath ?? null,
       functionName: functionName ?? null,
       isInternal,
-      lineNumber: lineNum ? Number.parseInt(lineNum, 10) : null,
+      lineNumber: lineNumber ? Number.parseInt(lineNumber, 10) : null,
       raw: trimmed,
     };
   }
 
   // Pattern: at filePath:line:column (no function name)
   const withoutFnMatch = trimmed.match(STACK_FRAME_WITHOUT_FN_REGEX);
-  if (withoutFnMatch) {
-    const [, filePath, lineNum, colNum] = withoutFnMatch;
+  if (withoutFnMatch?.groups) {
+    const { columnNumber, filePath, lineNumber } = withoutFnMatch.groups;
     const isInternal =
       (filePath?.includes("node_modules") ?? false) ||
       (filePath?.startsWith("node:") ?? false) ||
       (filePath?.includes("internal/") ?? false);
     return {
-      columnNumber: colNum ? Number.parseInt(colNum, 10) : null,
+      columnNumber: columnNumber ? Number.parseInt(columnNumber, 10) : null,
       filePath: filePath ?? null,
       functionName: null,
       isInternal,
-      lineNumber: lineNum ? Number.parseInt(lineNum, 10) : null,
+      lineNumber: lineNumber ? Number.parseInt(lineNumber, 10) : null,
       raw: trimmed,
     };
   }
@@ -135,10 +138,9 @@ const parseStackTrace = (trace: string): ParsedStackTrace => {
 
   // Try to extract error type from "ErrorType: message" format
   const errorMatch = firstLine.match(ERROR_TYPE_REGEX);
-  if (errorMatch) {
-    const [, type, msg] = errorMatch;
-    errorType = type;
-    errorMessage = msg || "";
+  if (errorMatch?.groups) {
+    errorType = errorMatch.groups.type;
+    errorMessage = errorMatch.groups.message || "";
   }
 
   // Parse stack frames (lines starting with "at")
