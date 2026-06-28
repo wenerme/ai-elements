@@ -15,6 +15,10 @@ export default defineConfig({
         import.meta.dirname,
         "../shadcn-ui/components"
       ),
+      "@repo/shadcn-ui/hooks/use-toast": path.resolve(
+        import.meta.dirname,
+        "../shadcn-ui/hooks/use-toast.ts"
+      ),
       "@repo/shadcn-ui/lib/base-ui": path.resolve(
         import.meta.dirname,
         "../shadcn-ui/lib/base-ui.ts"

@@ -10,6 +10,27 @@ on:
       - develop
 
 jobs:
+  check:
+    name: Check Formatting and Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Dependencies
+        run: pnpm i
+
+      - name: Run Checks
+        run: pnpm check
+
   build:
     name: Build Packages
     runs-on: ubuntu-latest

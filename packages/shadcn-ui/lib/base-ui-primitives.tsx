@@ -422,20 +422,17 @@ const MenubarRoot = (BaseMenubar as unknown as AnyComponent)
 const MenubarContent = createMenuContent(BaseMenu, "Menubar.Content")
 const SelectContent = createPositionedContent(BaseSelect.Positioner, BaseSelect.Popup, "Select.Content")
 
-const SelectIcon = createPlainElement("span", "Select.Icon")
-const SelectSeparatorElement = createPlainElement("div", "Select.Separator")
-const SelectScrollUpButton = createScrollButton("div", "Select.ScrollUpButton")
-const SelectScrollDownButton = createScrollButton("div", "Select.ScrollDownButton")
+const SelectIcon = withRender(BaseSelect.Icon as AnyComponent, "Select.Icon", "span")
+const SelectSeparatorElement = BaseSelect.Separator as AnyComponent
+const SelectScrollUpButton = BaseSelect.ScrollUpArrow as AnyComponent
+const SelectScrollDownButton = BaseSelect.ScrollDownArrow as AnyComponent
 
 const ProgressRoot = React.forwardRef<HTMLDivElement, AnyProps>(({ value = 0, ...props }, ref) => (
   <BaseProgress.Root ref={ref} value={value} {...props} />
 ))
 ProgressRoot.displayName = "Progress.Root"
 
-const SliderRange = React.forwardRef<HTMLDivElement, AnyProps>((props, ref) => (
-  <div ref={ref} {...props} />
-))
-SliderRange.displayName = "Slider.Range"
+const SliderRange = BaseSlider.Indicator as AnyComponent
 
 const CollapsibleRoot = withOpenRoot(BaseCollapsible.Root as AnyComponent, "Collapsible.Root")
 const CollapsibleTrigger = withRender(
