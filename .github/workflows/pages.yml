@@ -16,7 +16,7 @@ on:
       - "oxlint.config.mjs"
 
 concurrency:
-  group: pages-preview
+  group: pages-preview-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
