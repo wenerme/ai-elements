@@ -12,24 +12,20 @@ import {
   TooltipTrigger,
 } from "@repo/shadcn-ui/components/ui/tooltip";
 import { cn } from "@repo/shadcn-ui/lib/utils";
-import { cjk } from "@streamdown/cjk";
-import { code } from "@streamdown/code";
-import { math } from "@streamdown/math";
-import { mermaid } from "@streamdown/mermaid";
 import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import {
   createContext,
-  memo,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
-import type { PluginConfig } from "streamdown";
-import { Streamdown } from "streamdown";
+
+export { MessageResponse } from "./message-response";
+export type { MessageResponseProps } from "./message-response";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -319,33 +315,6 @@ export const MessageBranchPage = ({
     </ButtonGroupText>
   );
 };
-
-export type MessageResponseProps = ComponentProps<typeof Streamdown>;
-
-const streamdownPlugins: PluginConfig = {
-  cjk,
-  code: code as unknown as PluginConfig["code"],
-  math,
-  mermaid,
-};
-
-export const MessageResponse = memo(
-  ({ className, ...props }: MessageResponseProps) => (
-    <Streamdown
-      className={cn(
-        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-        className
-      )}
-      plugins={streamdownPlugins}
-      {...props}
-    />
-  ),
-  (prevProps, nextProps) =>
-    prevProps.children === nextProps.children &&
-    nextProps.isAnimating === prevProps.isAnimating
-);
-
-MessageResponse.displayName = "MessageResponse";
 
 export type MessageToolbarProps = ComponentProps<"div">;
 

@@ -74,9 +74,9 @@ function SelectContent({
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           className={cn(
-            "p-1",
+            "max-h-(--available-height) p-1",
             position === "popper" &&
-              "h-(--anchor-height) w-full min-w-(--anchor-width) scroll-my-1"
+              "w-full min-w-(--anchor-width) scroll-my-1"
           )}
         >
           {children}
