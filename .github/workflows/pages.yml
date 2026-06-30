@@ -1,0 +1,67 @@
+name: Pages Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop
+    paths:
+      - ".github/workflows/pages.yml"
+      - "apps/preview/**"
+      - "packages/elements/**"
+      - "packages/shadcn-ui/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "oxlint.config.mjs"
+
+concurrency:
+  group: pages-preview
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build Pages Preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Install Dependencies
+        run: pnpm i
+
+      - name: Build Preview
+        run: pnpm build:preview
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: apps/preview/dist
+
+  deploy:
+    name: Deploy Pages Preview
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
