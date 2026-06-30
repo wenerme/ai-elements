@@ -3,6 +3,7 @@ import {
   Attachment,
   AttachmentInfo,
   AttachmentPreview,
+  AttachmentRemove,
   Attachments,
 } from "@repo/elements/attachments";
 import {
@@ -19,6 +20,7 @@ import {
 } from "@repo/elements/context";
 import { Conversation, ConversationContent } from "@repo/elements/conversation";
 import { Message, MessageContent } from "@repo/elements/message";
+import type { PromptInputMessage } from "@repo/elements/prompt-input";
 import {
   PromptInput,
   PromptInputActionMenu,
@@ -78,11 +80,10 @@ import {
   GlobeIcon,
   ImageIcon,
   RulerIcon,
-  SendIcon,
   SparklesIcon,
   UserIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const checks = [
   "AI conversation renders user and assistant messages",
@@ -154,6 +155,19 @@ const registryExamples = [
   },
 ] as const;
 
+const MAX_CONTEXT_TOKENS = 128_000;
+const BASE_INPUT_TOKENS = 18_400;
+const CACHED_INPUT_TOKENS = 8200;
+const CONTEXT_ITEM_TOKEN_ESTIMATE = 1600;
+const CHARACTERS_PER_TOKEN_ESTIMATE = 4;
+const OUTPUT_TOKEN_ESTIMATE = 3200;
+const REASONING_TOKEN_ESTIMATE = 2400;
+const PROMPT_SUBMITTED_DELAY_MS = 400;
+const PROMPT_COMPLETED_DELAY_MS = 1600;
+const PROMPT_ERROR_RESET_DELAY_MS = 1200;
+
+type PromptSubmitStatus = "ready" | "submitted" | "streaming" | "error";
+
 const richPromptAttachments: AttachmentData[] = [
   {
     filename: "preview-screenshot.png",
@@ -178,6 +192,13 @@ const richPromptAttachments: AttachmentData[] = [
     type: "source-document",
   },
 ];
+
+const getRichPromptContextLabel = (attachment: AttachmentData): string => {
+  if (attachment.type === "source-document") {
+    return attachment.title || attachment.filename || "Source";
+  }
+  return attachment.filename || "Attachment";
+};
 
 const formatNow = () =>
   new Intl.DateTimeFormat("en", {
@@ -219,6 +240,28 @@ export const PreviewApp = () => {
   const [promptInputAction, setPromptInputAction] = useState(
     "Ready with text, attachments, context, tools, modes, and submit state"
   );
+  const [promptText, setPromptText] = useState(
+    "Validate the registry install flow and summarize any Base UI interaction regressions."
+  );
+  const [richPromptContext, setRichPromptContext] = useState(
+    richPromptAttachments
+  );
+  const [promptSubmitStatus, setPromptSubmitStatus] =
+    useState<PromptSubmitStatus>("ready");
+  const [promptTurnCount, setPromptTurnCount] = useState(0);
+  const [lastPromptSummary, setLastPromptSummary] = useState(
+    "No live prompt turn yet"
+  );
+  const promptStatusTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(
+    () => () => {
+      for (const timer of promptStatusTimers.current) {
+        clearTimeout(timer);
+      }
+    },
+    []
+  );
 
   const selectedModelOption =
     modelOptions.find((option) => option.value === selectedModel) ??
@@ -227,6 +270,124 @@ export const PreviewApp = () => {
     promptModeOptions.find((option) => option.value === promptMode) ??
     promptModeOptions[0];
 
+  const contextInputTokens =
+    BASE_INPUT_TOKENS +
+    richPromptContext.length * CONTEXT_ITEM_TOKEN_ESTIMATE +
+    Math.ceil(promptText.length / CHARACTERS_PER_TOKEN_ESTIMATE);
+  const contextReasoningTokens = reasoningEnabled
+    ? REASONING_TOKEN_ESTIMATE
+    : 0;
+  const usedContextTokens =
+    contextInputTokens + OUTPUT_TOKEN_ESTIMATE + contextReasoningTokens;
+
+  const addRichPromptContext = useCallback((attachment: AttachmentData) => {
+    setRichPromptContext((current) => {
+      if (current.some((item) => item.id === attachment.id)) {
+        return current;
+      }
+      return [...current, attachment];
+    });
+    setPromptInputAction(`Added ${getRichPromptContextLabel(attachment)}`);
+  }, []);
+
+  const removeRichPromptContext = useCallback((id: string) => {
+    setRichPromptContext((current) => {
+      const removed = current.find((item) => item.id === id);
+      if (removed) {
+        setPromptInputAction(`Removed ${getRichPromptContextLabel(removed)}`);
+      }
+      return current.filter((item) => item.id !== id);
+    });
+  }, []);
+
+  const clearPromptStatusTimers = useCallback(() => {
+    for (const timer of promptStatusTimers.current) {
+      clearTimeout(timer);
+    }
+    promptStatusTimers.current = [];
+  }, []);
+
+  const handleRichPromptSubmit = useCallback(
+    ({ files, text }: PromptInputMessage) => {
+      const trimmedText = text.trim();
+      const fallback = richPromptContext.length
+        ? `Submitted with ${richPromptContext.length} context item(s)`
+        : "Submitted empty prompt";
+      const promptSummary = trimmedText || fallback;
+
+      clearPromptStatusTimers();
+      setSubmittedPrompt(promptSummary);
+      setPromptText("");
+      setPromptTurnCount((count) => count + 1);
+      setPromptSubmitStatus("submitted");
+      setPromptInputAction(
+        `Queued ${promptModeOption.label} prompt for ${selectedModelOption.label}`
+      );
+      setLastPromptSummary(
+        `${promptModeOption.label} · ${richPromptContext.length} context item(s) · ${files.length} uploaded file(s)`
+      );
+
+      promptStatusTimers.current = [
+        setTimeout(() => {
+          setPromptSubmitStatus("streaming");
+          setPromptInputAction(
+            `${selectedModelOption.label} is streaming a preview response`
+          );
+        }, PROMPT_SUBMITTED_DELAY_MS),
+        setTimeout(() => {
+          setPromptSubmitStatus("ready");
+          setPromptInputAction(
+            `Completed ${promptModeOption.label} prompt with ${selectedModelOption.label}`
+          );
+        }, PROMPT_COMPLETED_DELAY_MS),
+      ];
+
+      toast({
+        description: `${promptModeOption.label} mode · ${richPromptContext.length} context item(s)`,
+        title: "Prompt submitted",
+      });
+    },
+    [
+      clearPromptStatusTimers,
+      promptModeOption.label,
+      richPromptContext.length,
+      selectedModelOption.label,
+    ]
+  );
+
+  const stopRichPrompt = useCallback(() => {
+    clearPromptStatusTimers();
+    setPromptSubmitStatus("ready");
+    setPromptInputAction("Stopped streaming preview response");
+  }, [clearPromptStatusTimers]);
+
+  const markRichPromptError = useCallback(() => {
+    clearPromptStatusTimers();
+    setPromptSubmitStatus("error");
+    setPromptInputAction("Simulated prompt validation error");
+    promptStatusTimers.current = [
+      setTimeout(() => {
+        setPromptSubmitStatus("ready");
+      }, PROMPT_ERROR_RESET_DELAY_MS),
+    ];
+  }, [clearPromptStatusTimers]);
+
+  const toggleWebSearch = useCallback(() => {
+    setWebSearchEnabled((value) => {
+      const nextValue = !value;
+      setPromptInputAction(`Web search ${nextValue ? "enabled" : "disabled"}`);
+      return nextValue;
+    });
+  }, []);
+
+  const toggleReasoning = useCallback(() => {
+    setReasoningEnabled((value) => {
+      const nextValue = !value;
+      setPromptInputAction(`Reasoning ${nextValue ? "enabled" : "disabled"}`);
+      return nextValue;
+    });
+  }, []);
+
   const status = useMemo(
     () => ({
       dropdownAction,
@@ -234,11 +395,16 @@ export const PreviewApp = () => {
       promptInputAction,
       promptMode,
       promptModeLabel: promptModeOption.label,
+      promptSubmitStatus,
+      promptTextLength: promptText.length,
+      promptTurnCount,
       reasoningEnabled,
+      richPromptContext: richPromptContext.map(getRichPromptContextLabel),
       selectedModel,
       selectedModelLabel: selectedModelOption.label,
       sliderValue: sliderValue[0] ?? 0,
       submittedPrompt,
+      usedContextTokens,
       webSearchEnabled,
     }),
     [
@@ -247,11 +413,16 @@ export const PreviewApp = () => {
       promptInputAction,
       promptMode,
       promptModeOption.label,
+      promptSubmitStatus,
+      promptText.length,
+      promptTurnCount,
       reasoningEnabled,
+      richPromptContext,
       selectedModel,
       selectedModelOption.label,
       sliderValue,
       submittedPrompt,
+      usedContextTokens,
       webSearchEnabled,
     ]
   );
@@ -384,8 +555,9 @@ export const PreviewApp = () => {
               </Message>
               <Message from="user">
                 <MessageContent>
-                  Which model and prompt mode are currently selected for this
-                  acceptance run?
+                  {submittedPrompt === "No prompt submitted yet"
+                    ? "Which model and prompt mode are currently selected for this acceptance run?"
+                    : submittedPrompt}
                 </MessageContent>
               </Message>
               <Message from="assistant">
@@ -402,7 +574,10 @@ export const PreviewApp = () => {
                     <p>
                       Prompt mode: <strong>{promptModeOption.label}</strong>
                     </p>
-                    <p>{selectedModelOption.description}.</p>
+                    <p>
+                      Prompt status: <strong>{promptSubmitStatus}</strong>
+                    </p>
+                    <p>{lastPromptSummary}.</p>
                   </div>
                 </MessageContent>
               </Message>
@@ -547,22 +722,25 @@ export const PreviewApp = () => {
           title="Rich Prompt Input"
         >
           <PromptInput
-            onSubmit={({ files, text }) => {
-              const fallback = files.length
-                ? `Submitted ${files.length} attachment(s)`
-                : "Empty submission";
-              setSubmittedPrompt(text || fallback);
-              setPromptInputAction(
-                `Submitted ${promptModeOption.label} prompt with ${selectedModelOption.label}`
-              );
+            globalDrop
+            multiple
+            onError={(error) => {
+              setPromptInputAction(error.message);
+              markRichPromptError();
             }}
+            onSubmit={handleRichPromptSubmit}
           >
             <PromptInputHeader>
               <Attachments className="w-full" variant="inline">
-                {richPromptAttachments.map((attachment) => (
-                  <Attachment data={attachment} key={attachment.id}>
+                {richPromptContext.map((attachment) => (
+                  <Attachment
+                    data={attachment}
+                    key={attachment.id}
+                    onRemove={() => removeRichPromptContext(attachment.id)}
+                  >
                     <AttachmentPreview />
                     <AttachmentInfo />
+                    <AttachmentRemove />
                   </Attachment>
                 ))}
               </Attachments>
@@ -581,14 +759,16 @@ export const PreviewApp = () => {
                   <div>
                     <p className="font-medium text-sm">Referenced files</p>
                     <p className="text-muted-foreground text-xs">
-                      Active source, markdown notes, and screenshot context are
-                      attached before submit.
+                      {richPromptContext.length} active context item(s). Add or
+                      remove chips to see the composer state update.
                     </p>
                   </div>
                   <div className="space-y-1 text-sm">
-                    <p>packages/elements/src/prompt-input.tsx</p>
-                    <p>apps/preview/src/preview-app.tsx</p>
-                    <p>docs/components/prompt-input.mdx</p>
+                    {richPromptContext.map((attachment) => (
+                      <p key={attachment.id}>
+                        {getRichPromptContextLabel(attachment)}
+                      </p>
+                    ))}
                   </div>
                 </PromptInputHoverCardContent>
               </PromptInputHoverCard>
@@ -632,7 +812,9 @@ export const PreviewApp = () => {
             <PromptInputBody>
               <PromptInputTextarea
                 name="message"
+                onChange={(event) => setPromptText(event.currentTarget.value)}
                 placeholder="Ask, edit, search, or attach context for the preview assistant..."
+                value={promptText}
               />
             </PromptInputBody>
 
@@ -646,7 +828,13 @@ export const PreviewApp = () => {
                   <PromptInputActionMenuContent>
                     <PromptInputActionMenuItem
                       onSelect={() =>
-                        setPromptInputAction("Selected file upload input")
+                        addRichPromptContext({
+                          filename: "design-review.png",
+                          id: "design-review",
+                          mediaType: "image/png",
+                          type: "file",
+                          url: "#design-review",
+                        })
                       }
                     >
                       <ImageIcon className="mr-2 size-4" />
@@ -654,7 +842,13 @@ export const PreviewApp = () => {
                     </PromptInputActionMenuItem>
                     <PromptInputActionMenuItem
                       onSelect={() =>
-                        setPromptInputAction("Selected screenshot input")
+                        addRichPromptContext({
+                          filename: "interactive-preview.png",
+                          id: "interactive-preview",
+                          mediaType: "image/png",
+                          type: "file",
+                          url: "#interactive-preview",
+                        })
                       }
                     >
                       <FilesIcon className="mr-2 size-4" />
@@ -662,7 +856,14 @@ export const PreviewApp = () => {
                     </PromptInputActionMenuItem>
                     <PromptInputActionMenuItem
                       onSelect={() =>
-                        setPromptInputAction("Selected source reference input")
+                        addRichPromptContext({
+                          filename: "packages/elements/src/prompt-input.tsx",
+                          id: "prompt-input-live-source",
+                          mediaType: "text/plain",
+                          sourceId: "prompt-input-live-source",
+                          title: "prompt-input.tsx live source",
+                          type: "source-document",
+                        })
                       }
                     >
                       <AtSignIcon className="mr-2 size-4" />
@@ -673,7 +874,7 @@ export const PreviewApp = () => {
 
                 <PromptInputButton
                   aria-pressed={webSearchEnabled}
-                  onClick={() => setWebSearchEnabled((value) => !value)}
+                  onClick={toggleWebSearch}
                   tooltip="Toggle web search"
                 >
                   <GlobeIcon className="size-4" />
@@ -682,7 +883,7 @@ export const PreviewApp = () => {
 
                 <PromptInputButton
                   aria-pressed={reasoningEnabled}
-                  onClick={() => setReasoningEnabled((value) => !value)}
+                  onClick={toggleReasoning}
                   tooltip="Toggle reasoning"
                 >
                   <SparklesIcon className="size-4" />
@@ -721,16 +922,16 @@ export const PreviewApp = () => {
                 </PromptInputSelect>
 
                 <Context
-                  maxTokens={128_000}
-                  modelId="gpt-4o"
+                  maxTokens={MAX_CONTEXT_TOKENS}
+                  modelId={selectedModel}
                   usage={{
-                    cachedInputTokens: 8200,
-                    inputTokens: 18_400,
-                    outputTokens: 3200,
-                    reasoningTokens: 2400,
-                    totalTokens: 24_000,
+                    cachedInputTokens: CACHED_INPUT_TOKENS,
+                    inputTokens: contextInputTokens,
+                    outputTokens: OUTPUT_TOKEN_ESTIMATE,
+                    reasoningTokens: contextReasoningTokens,
+                    totalTokens: usedContextTokens,
                   }}
-                  usedTokens={24_000}
+                  usedTokens={usedContextTokens}
                 >
                   <ContextTrigger className="h-8" />
                   <ContextContent>
@@ -746,12 +947,23 @@ export const PreviewApp = () => {
                 </Context>
               </PromptInputTools>
 
-              <PromptInputSubmit aria-label="Submit acceptance note">
-                <SendIcon className="size-4" />
-              </PromptInputSubmit>
+              <PromptInputSubmit
+                aria-label="Submit acceptance note"
+                disabled={promptSubmitStatus === "submitted"}
+                onStop={stopRichPrompt}
+                status={promptSubmitStatus}
+              />
             </PromptInputFooter>
           </PromptInput>
           <div className="mt-4 grid gap-2 text-muted-foreground text-sm sm:grid-cols-2">
+            <p>
+              Submit status: <span>{promptSubmitStatus}</span> · Turns:{" "}
+              <span>{promptTurnCount}</span>
+            </p>
+            <p>
+              Context chips: <span>{richPromptContext.length}</span> · Tokens:{" "}
+              <span>{usedContextTokens.toLocaleString()}</span>
+            </p>
             <p>
               Prompt mode: <span>{promptModeOption.label}</span>
             </p>
