@@ -1,9 +1,42 @@
-import { Attachments, Attachment } from "@repo/elements/attachments";
+import type { AttachmentData } from "@repo/elements/attachments";
+import {
+  Attachment,
+  AttachmentInfo,
+  AttachmentPreview,
+  Attachments,
+} from "@repo/elements/attachments";
+import {
+  Context,
+  ContextCacheUsage,
+  ContextContent,
+  ContextContentBody,
+  ContextContentFooter,
+  ContextContentHeader,
+  ContextInputUsage,
+  ContextOutputUsage,
+  ContextReasoningUsage,
+  ContextTrigger,
+} from "@repo/elements/context";
 import { Conversation, ConversationContent } from "@repo/elements/conversation";
 import { Message, MessageContent } from "@repo/elements/message";
 import {
   PromptInput,
+  PromptInputActionMenu,
+  PromptInputActionMenuContent,
+  PromptInputActionMenuItem,
+  PromptInputActionMenuTrigger,
+  PromptInputBody,
+  PromptInputButton,
   PromptInputFooter,
+  PromptInputHeader,
+  PromptInputHoverCard,
+  PromptInputHoverCardContent,
+  PromptInputHoverCardTrigger,
+  PromptInputSelect,
+  PromptInputSelectContent,
+  PromptInputSelectItem,
+  PromptInputSelectTrigger,
+  PromptInputSelectValue,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
@@ -37,9 +70,14 @@ import { Slider } from "@repo/shadcn-ui/components/ui/slider";
 import { Toaster } from "@repo/shadcn-ui/components/ui/toaster";
 import { toast } from "@repo/shadcn-ui/hooks/use-toast";
 import {
+  AtSignIcon,
   BotIcon,
   CheckCircle2Icon,
   ChevronDownIcon,
+  FilesIcon,
+  GlobeIcon,
+  ImageIcon,
+  RulerIcon,
   SendIcon,
   SparklesIcon,
   UserIcon,
@@ -52,7 +90,7 @@ const checks = [
   "Toast appears in the top-right notification stack",
   "Slider and Progress share the same live value",
   "Dropdown callbacks update the visible action state",
-  "PromptInput submits into the conversation status panel",
+  "PromptInput demonstrates text, files, context, tools, modes, and submit state",
 ] as const;
 
 const modelOptions = [
@@ -78,6 +116,54 @@ const modelOptions = [
   },
 ] as const;
 
+const promptModeOptions = [
+  {
+    description: "Normal chat turn with context and tools",
+    label: "Chat",
+    value: "chat",
+  },
+  {
+    description: "Patch or rewrite selected content",
+    label: "Edit",
+    value: "edit",
+  },
+  {
+    description: "Plan tasks and execute tool calls",
+    label: "Agent",
+    value: "agent",
+  },
+  {
+    description: "Dictation-oriented voice prompt",
+    label: "Voice",
+    value: "voice",
+  },
+] as const;
+
+const richPromptAttachments: AttachmentData[] = [
+  {
+    filename: "preview-screenshot.png",
+    id: "preview-screenshot",
+    mediaType: "image/png",
+    type: "file",
+    url: "#preview-screenshot",
+  },
+  {
+    filename: "acceptance-notes.md",
+    id: "acceptance-notes",
+    mediaType: "text/markdown",
+    type: "file",
+    url: "#acceptance-notes",
+  },
+  {
+    filename: "packages/elements/src/prompt-input.tsx",
+    id: "prompt-input-source",
+    mediaType: "text/plain",
+    sourceId: "prompt-input-source",
+    title: "prompt-input.tsx",
+    type: "source-document",
+  },
+];
+
 const formatNow = () =>
   new Intl.DateTimeFormat("en", {
     dateStyle: "medium",
@@ -86,14 +172,16 @@ const formatNow = () =>
 
 const Section = ({
   children,
+  className,
   description,
   title,
 }: {
   children: React.ReactNode;
+  className?: string;
   description: string;
   title: string;
 }) => (
-  <Card>
+  <Card className={className}>
     <CardHeader>
       <CardTitle>{title}</CardTitle>
       <CardDescription>{description}</CardDescription>
@@ -104,33 +192,52 @@ const Section = ({
 
 export const PreviewApp = () => {
   const [selectedModel, setSelectedModel] = useState("gpt-5.1");
+  const [promptMode, setPromptMode] = useState("agent");
   const [sliderValue, setSliderValue] = useState([42]);
   const [progressValue, setProgressValue] = useState(42);
   const [dropdownAction, setDropdownAction] = useState("No action yet");
   const [submittedPrompt, setSubmittedPrompt] = useState(
     "No prompt submitted yet"
   );
+  const [webSearchEnabled, setWebSearchEnabled] = useState(true);
+  const [reasoningEnabled, setReasoningEnabled] = useState(true);
+  const [promptInputAction, setPromptInputAction] = useState(
+    "Ready with text, attachments, context, tools, modes, and submit state"
+  );
 
   const selectedModelOption =
     modelOptions.find((option) => option.value === selectedModel) ??
     modelOptions[0];
+  const promptModeOption =
+    promptModeOptions.find((option) => option.value === promptMode) ??
+    promptModeOptions[0];
 
   const status = useMemo(
     () => ({
       dropdownAction,
       progressValue,
+      promptInputAction,
+      promptMode,
+      promptModeLabel: promptModeOption.label,
+      reasoningEnabled,
       selectedModel,
       selectedModelLabel: selectedModelOption.label,
       sliderValue: sliderValue[0] ?? 0,
       submittedPrompt,
+      webSearchEnabled,
     }),
     [
       dropdownAction,
       progressValue,
+      promptInputAction,
+      promptMode,
+      promptModeOption.label,
+      reasoningEnabled,
       selectedModel,
       selectedModelOption.label,
       sliderValue,
       submittedPrompt,
+      webSearchEnabled,
     ]
   );
 
@@ -215,8 +322,9 @@ export const PreviewApp = () => {
                         bubbles.
                       </li>
                       <li>
-                        <strong>PromptInput</strong> submits notes into the live
-                        status panel.
+                        <strong>PromptInput</strong> now demonstrates text,
+                        attachments, referenced sources, tools, mode selection,
+                        and submit state.
                       </li>
                       <li>
                         <strong>Model Select</strong> uses Base UI positioning
@@ -228,7 +336,8 @@ export const PreviewApp = () => {
               </Message>
               <Message from="user">
                 <MessageContent>
-                  Which model is currently selected for this acceptance run?
+                  Which model and prompt mode are currently selected for this
+                  acceptance run?
                 </MessageContent>
               </Message>
               <Message from="assistant">
@@ -241,6 +350,9 @@ export const PreviewApp = () => {
                     <p>
                       Selected model:{" "}
                       <strong>{selectedModelOption.label}</strong>
+                    </p>
+                    <p>
+                      Prompt mode: <strong>{promptModeOption.label}</strong>
                     </p>
                     <p>{selectedModelOption.description}.</p>
                   </div>
@@ -382,28 +494,230 @@ export const PreviewApp = () => {
         </Section>
 
         <Section
-          description="Submit a message to verify the prompt form, textarea, and submit button stay interactive."
-          title="Prompt Input"
+          className="lg:col-span-2"
+          description="Rich composer covering text, file chips, referenced sources, tools, context usage, prompt modes, and submit state."
+          title="Rich Prompt Input"
         >
           <PromptInput
-            onSubmit={({ text }) => {
-              setSubmittedPrompt(text || "Empty submission");
+            onSubmit={({ files, text }) => {
+              const fallback = files.length
+                ? `Submitted ${files.length} attachment(s)`
+                : "Empty submission";
+              setSubmittedPrompt(text || fallback);
+              setPromptInputAction(
+                `Submitted ${promptModeOption.label} prompt with ${selectedModelOption.label}`
+              );
             }}
           >
-            <PromptInputTextarea
-              name="message"
-              placeholder="Ask the preview assistant..."
-            />
-            <PromptInputFooter>
-              <PromptInputTools />
+            <PromptInputHeader>
+              <Attachments className="w-full" variant="inline">
+                {richPromptAttachments.map((attachment) => (
+                  <Attachment data={attachment} key={attachment.id}>
+                    <AttachmentPreview />
+                    <AttachmentInfo />
+                  </Attachment>
+                ))}
+              </Attachments>
+              <PromptInputHoverCard>
+                <PromptInputHoverCardTrigger>
+                  <PromptInputButton
+                    aria-label="Open referenced files"
+                    size="sm"
+                    variant="outline"
+                  >
+                    <AtSignIcon className="size-3.5" />
+                    Files
+                  </PromptInputButton>
+                </PromptInputHoverCardTrigger>
+                <PromptInputHoverCardContent className="w-80 space-y-3 p-3">
+                  <div>
+                    <p className="font-medium text-sm">Referenced files</p>
+                    <p className="text-muted-foreground text-xs">
+                      Active source, markdown notes, and screenshot context are
+                      attached before submit.
+                    </p>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <p>packages/elements/src/prompt-input.tsx</p>
+                    <p>apps/preview/src/preview-app.tsx</p>
+                    <p>docs/components/prompt-input.mdx</p>
+                  </div>
+                </PromptInputHoverCardContent>
+              </PromptInputHoverCard>
+              <PromptInputHoverCard>
+                <PromptInputHoverCardTrigger>
+                  <PromptInputButton size="sm" variant="outline">
+                    <RulerIcon className="size-3.5" />
+                    Rules
+                  </PromptInputButton>
+                </PromptInputHoverCardTrigger>
+                <PromptInputHoverCardContent className="w-72 p-0">
+                  <div className="space-y-2 p-3">
+                    <p className="font-medium text-sm">Attached rules</p>
+                    <p className="text-muted-foreground text-sm">
+                      Keep Base UI compatibility, validate gh-pages, and avoid
+                      direct Radix imports.
+                    </p>
+                  </div>
+                  <p className="border-t bg-muted px-3 py-2 text-muted-foreground text-xs">
+                    Rule chips are part of PromptInput header composition.
+                  </p>
+                </PromptInputHoverCardContent>
+              </PromptInputHoverCard>
+              <PromptInputHoverCard>
+                <PromptInputHoverCardTrigger>
+                  <PromptInputButton size="sm" variant="outline">
+                    <FilesIcon className="size-3.5" />3 Tabs
+                  </PromptInputButton>
+                </PromptInputHoverCardTrigger>
+                <PromptInputHoverCardContent className="w-80 space-y-3 p-3">
+                  <p className="font-medium text-sm">Active browser tabs</p>
+                  <div className="space-y-2 text-sm">
+                    <p className="truncate">GitHub Pages preview</p>
+                    <p className="truncate">Base UI Select adapter</p>
+                    <p className="truncate">PromptInput documentation</p>
+                  </div>
+                </PromptInputHoverCardContent>
+              </PromptInputHoverCard>
+            </PromptInputHeader>
+
+            <PromptInputBody>
+              <PromptInputTextarea
+                name="message"
+                placeholder="Ask, edit, search, or attach context for the preview assistant..."
+              />
+            </PromptInputBody>
+
+            <PromptInputFooter className="flex-wrap">
+              <PromptInputTools className="flex-wrap">
+                <PromptInputActionMenu>
+                  <PromptInputActionMenuTrigger
+                    aria-label="Open prompt actions"
+                    tooltip="Add input"
+                  />
+                  <PromptInputActionMenuContent>
+                    <PromptInputActionMenuItem
+                      onSelect={() =>
+                        setPromptInputAction("Selected file upload input")
+                      }
+                    >
+                      <ImageIcon className="mr-2 size-4" />
+                      Add image or file
+                    </PromptInputActionMenuItem>
+                    <PromptInputActionMenuItem
+                      onSelect={() =>
+                        setPromptInputAction("Selected screenshot input")
+                      }
+                    >
+                      <FilesIcon className="mr-2 size-4" />
+                      Attach screenshot
+                    </PromptInputActionMenuItem>
+                    <PromptInputActionMenuItem
+                      onSelect={() =>
+                        setPromptInputAction("Selected source reference input")
+                      }
+                    >
+                      <AtSignIcon className="mr-2 size-4" />
+                      Reference source
+                    </PromptInputActionMenuItem>
+                  </PromptInputActionMenuContent>
+                </PromptInputActionMenu>
+
+                <PromptInputButton
+                  aria-pressed={webSearchEnabled}
+                  onClick={() => setWebSearchEnabled((value) => !value)}
+                  tooltip="Toggle web search"
+                >
+                  <GlobeIcon className="size-4" />
+                  Search
+                </PromptInputButton>
+
+                <PromptInputButton
+                  aria-pressed={reasoningEnabled}
+                  onClick={() => setReasoningEnabled((value) => !value)}
+                  tooltip="Toggle reasoning"
+                >
+                  <SparklesIcon className="size-4" />
+                  Reason
+                </PromptInputButton>
+
+                <PromptInputSelect
+                  onValueChange={setPromptMode}
+                  value={promptMode}
+                >
+                  <PromptInputSelectTrigger aria-label="Choose prompt mode">
+                    <PromptInputSelectValue>
+                      {(value) =>
+                        promptModeOptions.find(
+                          (option) => option.value === value
+                        )?.label ?? "Mode"
+                      }
+                    </PromptInputSelectValue>
+                  </PromptInputSelectTrigger>
+                  <PromptInputSelectContent>
+                    {promptModeOptions.map((option) => (
+                      <PromptInputSelectItem
+                        key={option.value}
+                        label={option.label}
+                        value={option.value}
+                      >
+                        <div className="flex flex-col text-left">
+                          <span>{option.label}</span>
+                          <span className="text-muted-foreground text-xs">
+                            {option.description}
+                          </span>
+                        </div>
+                      </PromptInputSelectItem>
+                    ))}
+                  </PromptInputSelectContent>
+                </PromptInputSelect>
+
+                <Context
+                  maxTokens={128_000}
+                  modelId="gpt-4o"
+                  usage={{
+                    cachedInputTokens: 8200,
+                    inputTokens: 18_400,
+                    outputTokens: 3200,
+                    reasoningTokens: 2400,
+                    totalTokens: 24_000,
+                  }}
+                  usedTokens={24_000}
+                >
+                  <ContextTrigger className="h-8" />
+                  <ContextContent>
+                    <ContextContentHeader />
+                    <ContextContentBody className="space-y-2">
+                      <ContextInputUsage />
+                      <ContextCacheUsage />
+                      <ContextReasoningUsage />
+                      <ContextOutputUsage />
+                    </ContextContentBody>
+                    <ContextContentFooter />
+                  </ContextContent>
+                </Context>
+              </PromptInputTools>
+
               <PromptInputSubmit aria-label="Submit acceptance note">
                 <SendIcon className="size-4" />
               </PromptInputSubmit>
             </PromptInputFooter>
           </PromptInput>
-          <p className="mt-4 text-muted-foreground text-sm">
-            Last submitted prompt: <span>{submittedPrompt}</span>
-          </p>
+          <div className="mt-4 grid gap-2 text-muted-foreground text-sm sm:grid-cols-2">
+            <p>
+              Prompt mode: <span>{promptModeOption.label}</span>
+            </p>
+            <p>
+              Web search: <span>{webSearchEnabled ? "on" : "off"}</span> ·
+              Reasoning: <span>{reasoningEnabled ? "on" : "off"}</span>
+            </p>
+            <p className="sm:col-span-2">
+              Last prompt action: <span>{promptInputAction}</span>
+            </p>
+            <p className="sm:col-span-2">
+              Last submitted prompt: <span>{submittedPrompt}</span>
+            </p>
+          </div>
         </Section>
       </div>
 
