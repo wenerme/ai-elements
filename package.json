@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "build:preview": "pnpm --filter preview build",
+    "build:preview": "pnpm generate-static-registry && pnpm --filter preview build",
     "dev": "turbo run dev",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
@@ -12,7 +12,8 @@
     "bump-deps": "npx npm-check-updates --deep -u -x recharts,react-resizable-panels && pnpm install",
     "bump-ui": "npx shadcn@latest add --all --overwrite -c packages/shadcn-ui && npx shadcn@latest migrate radix -c packages/shadcn-ui",
     "changeset": "changeset",
-    "generate-skills": "pnpm --filter @repo/scripts generate-skills"
+    "generate-skills": "pnpm --filter @repo/scripts generate-skills",
+    "generate-static-registry": "pnpm --filter @repo/scripts generate-static-registry"
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.0",

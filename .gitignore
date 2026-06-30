@@ -27,7 +27,7 @@ coverage
 out/
 build
 dist
-
+apps/preview/public/
 
 # Debug
 npm-debug.log*
