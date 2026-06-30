@@ -197,7 +197,9 @@ export const PreviewApp = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <p className="mt-4 text-muted-foreground text-sm">{dropdownAction}</p>
+          <p className="mt-4 text-muted-foreground text-sm">
+            Last dropdown action: <span>{dropdownAction}</span>
+          </p>
         </Section>
 
         <Section
@@ -205,13 +207,8 @@ export const PreviewApp = () => {
           title="Prompt Input"
         >
           <PromptInput
-            onSubmit={(event) => {
-              event.preventDefault();
-              const formData = new FormData(event.currentTarget);
-              setSubmittedPrompt(
-                String(formData.get("message") || "Empty submission")
-              );
-              event.currentTarget.reset();
+            onSubmit={({ text }) => {
+              setSubmittedPrompt(text || "Empty submission");
             }}
           >
             <PromptInputTextarea
@@ -220,13 +217,13 @@ export const PreviewApp = () => {
             />
             <PromptInputFooter>
               <PromptInputTools />
-              <PromptInputSubmit>
+              <PromptInputSubmit aria-label="Submit acceptance note">
                 <SendIcon className="size-4" />
               </PromptInputSubmit>
             </PromptInputFooter>
           </PromptInput>
           <p className="mt-4 text-muted-foreground text-sm">
-            {submittedPrompt}
+            Last submitted prompt: <span>{submittedPrompt}</span>
           </p>
         </Section>
       </div>
@@ -240,9 +237,29 @@ export const PreviewApp = () => {
             The static preview is built with Vite and deployed by GitHub Pages
             for manual acceptance.
           </p>
-          <Attachments>
-            <Attachment name="base-ui-preview.md" />
-            <Attachment name="dependency-upgrade.md" />
+          <Attachments variant="list">
+            <Attachment
+              data={{
+                filename: "base-ui-preview.md",
+                id: "base-ui-preview",
+                mediaType: "text/markdown",
+                type: "file",
+                url: "#base-ui-preview",
+              }}
+            >
+              <span className="font-medium text-sm">base-ui-preview.md</span>
+            </Attachment>
+            <Attachment
+              data={{
+                filename: "dependency-upgrade.md",
+                id: "dependency-upgrade",
+                mediaType: "text/markdown",
+                type: "file",
+                url: "#dependency-upgrade",
+              }}
+            >
+              <span className="font-medium text-sm">dependency-upgrade.md</span>
+            </Attachment>
           </Attachments>
         </div>
       </Section>
