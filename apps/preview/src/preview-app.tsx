@@ -6,6 +6,7 @@ import {
   AttachmentRemove,
   Attachments,
 } from "@repo/elements/attachments";
+import { CodeBlock } from "@repo/elements/code-block";
 import {
   Context,
   ContextCacheUsage,
@@ -19,7 +20,20 @@ import {
   ContextTrigger,
 } from "@repo/elements/context";
 import { Conversation, ConversationContent } from "@repo/elements/conversation";
+import {
+  FileTree,
+  FileTreeFile,
+  FileTreeFolder,
+} from "@repo/elements/file-tree";
 import { Message, MessageContent } from "@repo/elements/message";
+import {
+  Plan,
+  PlanContent,
+  PlanDescription,
+  PlanHeader,
+  PlanTitle,
+  PlanTrigger,
+} from "@repo/elements/plan";
 import type { PromptInputMessage } from "@repo/elements/prompt-input";
 import {
   PromptInput,
@@ -43,6 +57,24 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@repo/elements/prompt-input";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@repo/elements/reasoning";
+import {
+  Source,
+  Sources,
+  SourcesContent,
+  SourcesTrigger,
+} from "@repo/elements/sources";
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from "@repo/elements/tool";
 import { Badge } from "@repo/shadcn-ui/components/ui/badge";
 import { Button } from "@repo/shadcn-ui/components/ui/button";
 import {
@@ -193,6 +225,21 @@ const richPromptAttachments: AttachmentData[] = [
   },
 ];
 
+const demoPatchCode = `type AgentDemoState = {
+  model: string;
+  mode: "agent" | "chat" | "edit" | "voice";
+  contextFiles: string[];
+  tools: Array<"read_registry" | "inspect_bundle" | "run_smoke">;
+};
+
+export const buildAcceptanceSummary = (state: AgentDemoState) => ({
+  title: "Base UI registry preview",
+  verified: true,
+  model: state.model,
+  context: state.contextFiles,
+  nextAction: "ship-gh-pages-preview",
+});`;
+
 const getRichPromptContextLabel = (attachment: AttachmentData): string => {
   if (attachment.type === "source-document") {
     return attachment.title || attachment.filename || "Source";
@@ -251,6 +298,9 @@ export const PreviewApp = () => {
   const [promptTurnCount, setPromptTurnCount] = useState(0);
   const [lastPromptSummary, setLastPromptSummary] = useState(
     "No live prompt turn yet"
+  );
+  const [demoSelectedFile, setDemoSelectedFile] = useState(
+    "apps/preview/src/preview-app.tsx"
   );
   const promptStatusTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -508,77 +558,244 @@ export const PreviewApp = () => {
       </Section>
 
       <Section
-        description="A real AI Elements composition using Conversation, Message, Attachments, and PromptInput."
-        title="AI Conversation"
+        description="A complete agent run with user prompt, reasoning, tools, file context, generated code, sources, and the live PromptInput state below."
+        title="Complete Agent Demo"
       >
-        <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
-          <Conversation className="h-[430px] rounded-xl border bg-background">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <Conversation className="h-[720px] rounded-xl border bg-background">
             <ConversationContent className="gap-5 p-4">
               <Message from="user">
-                <MessageContent>
-                  Validate the Base UI migration on GitHub Pages and make sure
-                  the AI chat primitives still feel like a real assistant UI.
+                <MessageContent className="max-w-full">
+                  <div className="space-y-3">
+                    <p>
+                      Build a production-ready shadcn registry preview for AI
+                      Elements. Validate the live Pages site, inspect registry
+                      JSON, show the code shape, and prove the prompt composer
+                      works like an agent UI.
+                    </p>
+                    <Attachments variant="inline">
+                      {richPromptContext.slice(0, 3).map((attachment) => (
+                        <Attachment data={attachment} key={attachment.id}>
+                          <AttachmentPreview />
+                          <AttachmentInfo />
+                        </Attachment>
+                      ))}
+                    </Attachments>
+                  </div>
                 </MessageContent>
               </Message>
+
               <Message from="assistant">
-                <MessageContent className="max-w-full">
-                  <div className="mb-2 flex items-center gap-2 text-muted-foreground text-xs">
+                <MessageContent className="max-w-full space-y-4">
+                  <div className="flex items-center gap-2 text-muted-foreground text-xs">
                     <BotIcon className="size-3.5" />
                     <span>{selectedModelOption.label}</span>
+                    <span>·</span>
+                    <span>{promptModeOption.label} mode</span>
+                    <span>·</span>
+                    <span>{promptSubmitStatus}</span>
                   </div>
-                  <div className="space-y-3 leading-6">
+
+                  <Reasoning
+                    defaultOpen
+                    duration={7}
+                    isStreaming={promptSubmitStatus === "streaming"}
+                  >
+                    <ReasoningTrigger />
+                    <ReasoningContent>
+                      {`I need to verify this as a real agent workflow, not just isolated widgets.
+
+Plan:
+1. Inspect the static registry endpoints and recursive shadcn dependencies.
+2. Check the files involved in the preview and generated registry.
+3. Run a smoke test against the prompt composer interaction state.
+4. Summarize the code and deployment evidence in one conversation turn.`}
+                    </ReasoningContent>
+                  </Reasoning>
+
+                  <Plan
+                    defaultOpen
+                    isStreaming={promptSubmitStatus !== "ready"}
+                  >
+                    <PlanHeader>
+                      <div>
+                        <PlanTitle>Registry acceptance plan</PlanTitle>
+                        <PlanDescription>
+                          End-to-end validation for Pages, registry install,
+                          prompt composer, and Base UI primitives.
+                        </PlanDescription>
+                      </div>
+                      <PlanTrigger />
+                    </PlanHeader>
+                    <PlanContent>
+                      <ol className="list-decimal space-y-1 pl-4 text-sm">
+                        <li>
+                          Read `/registry.json` and selected `/r/*.json` items.
+                        </li>
+                        <li>
+                          Install `prompt-input` with `shadcn add --dry-run`.
+                        </li>
+                        <li>
+                          Exercise context chips, tool toggles, and submit
+                          status.
+                        </li>
+                        <li>Report code, file, and deployment evidence.</li>
+                      </ol>
+                    </PlanContent>
+                  </Plan>
+
+                  <Tool defaultOpen>
+                    <ToolHeader
+                      state="output-available"
+                      title="Read static registry"
+                      type="tool-readRegistry"
+                    />
+                    <ToolContent>
+                      <ToolInput
+                        input={{
+                          endpoints: [
+                            "/registry.json",
+                            "/r/prompt-input.json",
+                            "/api/registry/prompt-input.json",
+                          ],
+                          host: "https://wenerme.github.io/ai-elements",
+                        }}
+                      />
+                      <ToolOutput
+                        errorText={undefined}
+                        output={{
+                          dependencies: ["@base-ui/react", "cmdk", "ai"],
+                          items: 198,
+                          radix: false,
+                          status: "ok",
+                        }}
+                      />
+                    </ToolContent>
+                  </Tool>
+
+                  <Tool defaultOpen>
+                    <ToolHeader
+                      state="output-available"
+                      title="Run composer smoke"
+                      type="tool-runSmoke"
+                    />
+                    <ToolContent>
+                      <ToolInput
+                        input={{
+                          addContextChip: "interactive-preview.png",
+                          prompt: submittedPrompt,
+                          toggleTools: ["search", "reason"],
+                        }}
+                      />
+                      <ToolOutput
+                        errorText={undefined}
+                        output={{
+                          contextChips: richPromptContext.length,
+                          promptTurnCount,
+                          status: promptSubmitStatus,
+                          textCleared: promptText.length === 0,
+                        }}
+                      />
+                    </ToolContent>
+                  </Tool>
+
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                    <div className="space-y-2">
+                      <p className="font-medium text-sm">Workspace files</p>
+                      <FileTree
+                        defaultExpanded={
+                          new Set([
+                            "apps",
+                            "apps/preview",
+                            "packages",
+                            "packages/scripts",
+                          ])
+                        }
+                        onSelect={setDemoSelectedFile}
+                        selectedPath={demoSelectedFile}
+                      >
+                        <FileTreeFolder name="apps" path="apps">
+                          <FileTreeFolder name="preview" path="apps/preview">
+                            <FileTreeFile
+                              name="preview-app.tsx"
+                              path="apps/preview/src/preview-app.tsx"
+                            />
+                            <FileTreeFile
+                              name="package.json"
+                              path="apps/preview/package.json"
+                            />
+                          </FileTreeFolder>
+                        </FileTreeFolder>
+                        <FileTreeFolder name="packages" path="packages">
+                          <FileTreeFile
+                            name="prompt-input.tsx"
+                            path="packages/elements/src/prompt-input.tsx"
+                          />
+                          <FileTreeFolder
+                            name="scripts"
+                            path="packages/scripts"
+                          >
+                            <FileTreeFile
+                              name="generate-static-registry.ts"
+                              path="packages/scripts/src/generate-static-registry.ts"
+                            />
+                          </FileTreeFolder>
+                        </FileTreeFolder>
+                      </FileTree>
+                      <p className="text-muted-foreground text-xs">
+                        Selected: <span>{demoSelectedFile}</span>
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="font-medium text-sm">
+                        Generated code result
+                      </p>
+                      <CodeBlock
+                        className="max-h-80"
+                        code={demoPatchCode}
+                        language="tsx"
+                        showLineNumbers
+                      />
+                    </div>
+                  </div>
+
+                  <Sources defaultOpen>
+                    <SourcesTrigger count={3} />
+                    <SourcesContent>
+                      <Source
+                        href="https://wenerme.github.io/ai-elements/registry.json"
+                        title="Live registry index"
+                      />
+                      <Source
+                        href="https://wenerme.github.io/ai-elements/r/prompt-input.json"
+                        title="Prompt Input registry item"
+                      />
+                      <Source
+                        href="https://github.com/wenerme/ai-elements/actions"
+                        title="GitHub Actions checks"
+                      />
+                    </SourcesContent>
+                  </Sources>
+
+                  <div className="rounded-lg border bg-muted/40 p-3 text-sm leading-6">
+                    <p className="font-medium">Final answer</p>
                     <p>
-                      The preview now renders an AI conversation, not just
-                      isolated primitive cards.
+                      The registry preview is live, Base UI-backed, and
+                      installable. The prompt composer below drives this demo:
+                      submitting a prompt updates the user turn, reasoning/tool
+                      status, context tokens, and smoke-test output without a
+                      page reload.
                     </p>
-                    <ul className="list-disc space-y-1 pl-5">
-                      <li>
-                        <strong>Conversation</strong> keeps messages in a
-                        scrollable chat surface.
-                      </li>
-                      <li>
-                        <strong>Message</strong> renders assistant and user
-                        bubbles.
-                      </li>
-                      <li>
-                        <strong>PromptInput</strong> now demonstrates text,
-                        attachments, referenced sources, tools, mode selection,
-                        and submit state.
-                      </li>
-                      <li>
-                        <strong>Model Select</strong> uses Base UI positioning
-                        for AI model choices.
-                      </li>
-                    </ul>
                   </div>
                 </MessageContent>
               </Message>
+
               <Message from="user">
                 <MessageContent>
                   {submittedPrompt === "No prompt submitted yet"
-                    ? "Which model and prompt mode are currently selected for this acceptance run?"
+                    ? "Try the composer below: add a context chip, toggle tools, then submit a prompt."
                     : submittedPrompt}
-                </MessageContent>
-              </Message>
-              <Message from="assistant">
-                <MessageContent className="max-w-full">
-                  <div className="mb-2 flex items-center gap-2 text-muted-foreground text-xs">
-                    <BotIcon className="size-3.5" />
-                    <span>Model route</span>
-                  </div>
-                  <div className="space-y-2 leading-6">
-                    <p>
-                      Selected model:{" "}
-                      <strong>{selectedModelOption.label}</strong>
-                    </p>
-                    <p>
-                      Prompt mode: <strong>{promptModeOption.label}</strong>
-                    </p>
-                    <p>
-                      Prompt status: <strong>{promptSubmitStatus}</strong>
-                    </p>
-                    <p>{lastPromptSummary}.</p>
-                  </div>
                 </MessageContent>
               </Message>
             </ConversationContent>
@@ -587,38 +804,34 @@ export const PreviewApp = () => {
           <div className="space-y-4 rounded-xl border bg-muted/40 p-4">
             <div className="flex items-center gap-2 font-medium text-sm">
               <UserIcon className="size-4" />
-              Acceptance artifacts
+              Demo state
             </div>
             <Attachments variant="list">
-              <Attachment
-                data={{
-                  filename: "base-ui-preview.md",
-                  id: "base-ui-preview",
-                  mediaType: "text/markdown",
-                  type: "file",
-                  url: "#base-ui-preview",
-                }}
-              >
-                <span className="font-medium text-sm">base-ui-preview.md</span>
-              </Attachment>
-              <Attachment
-                data={{
-                  filename: "dependency-upgrade.md",
-                  id: "dependency-upgrade",
-                  mediaType: "text/markdown",
-                  type: "file",
-                  url: "#dependency-upgrade",
-                }}
-              >
-                <span className="font-medium text-sm">
-                  dependency-upgrade.md
-                </span>
-              </Attachment>
+              {richPromptContext.map((attachment) => (
+                <Attachment data={attachment} key={attachment.id}>
+                  <AttachmentPreview />
+                  <AttachmentInfo />
+                </Attachment>
+              ))}
             </Attachments>
-            <p className="text-muted-foreground text-xs leading-5">
-              These attachments prove the static Pages app is importing AI
-              Elements package code, not only local preview markup.
-            </p>
+            <div className="grid gap-2 text-muted-foreground text-xs leading-5">
+              <p>
+                Model: <span>{selectedModelOption.label}</span>
+              </p>
+              <p>
+                Mode: <span>{promptModeOption.label}</span>
+              </p>
+              <p>
+                Prompt status: <span>{promptSubmitStatus}</span>
+              </p>
+              <p>
+                Context tokens:{" "}
+                <span>{usedContextTokens.toLocaleString()}</span>
+              </p>
+              <p>
+                Last turn: <span>{lastPromptSummary}</span>
+              </p>
+            </div>
           </div>
         </div>
       </Section>
