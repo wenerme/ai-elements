@@ -68,6 +68,7 @@ import {
   SourcesContent,
   SourcesTrigger,
 } from "@repo/elements/sources";
+import { SpeechInput } from "@repo/elements/speech-input";
 import {
   Tool,
   ToolContent,
@@ -111,6 +112,7 @@ import {
   FilesIcon,
   GlobeIcon,
   ImageIcon,
+  MicIcon,
   RulerIcon,
   SparklesIcon,
   UserIcon,
@@ -123,7 +125,7 @@ const checks = [
   "Toast appears in the top-right notification stack",
   "Slider and Progress share the same live value",
   "Dropdown callbacks update the visible action state",
-  "PromptInput demonstrates text, files, context, tools, modes, and submit state",
+  "PromptInput demonstrates text, files, voice, reasoning, tools, and submit state",
 ] as const;
 
 const modelOptions = [
@@ -353,6 +355,12 @@ export const PreviewApp = () => {
   const [reasoningPromptText, setReasoningPromptText] = useState(
     "Plan a safe Base UI migration review and list the checks to run before shipping."
   );
+  const [voicePromptText, setVoicePromptText] = useState(
+    "Use the microphone to draft a hands-free acceptance summary."
+  );
+  const [voiceTranscript, setVoiceTranscript] = useState(
+    "No speech transcript yet"
+  );
   const [richPromptContext, setRichPromptContext] = useState(
     richPromptAttachments
   );
@@ -360,6 +368,7 @@ export const PreviewApp = () => {
     useState<PromptSubmitStatus>("ready");
   const [promptTurnCount, setPromptTurnCount] = useState(0);
   const [reasoningPromptTurnCount, setReasoningPromptTurnCount] = useState(0);
+  const [voicePromptTurnCount, setVoicePromptTurnCount] = useState(0);
   const [lastPromptSummary, setLastPromptSummary] = useState(
     "No live prompt turn yet"
   );
@@ -493,6 +502,41 @@ export const PreviewApp = () => {
     [reasoningLevelOption.label, webSearchEnabled]
   );
 
+  const handleVoiceTranscriptionChange = useCallback((text: string) => {
+    const transcript = text.trim();
+    if (!transcript) {
+      return;
+    }
+    setVoiceTranscript(transcript);
+    setVoicePromptText((current) =>
+      current.trim() ? `${current.trim()} ${transcript}` : transcript
+    );
+    setPromptInputAction(`Voice transcript added: ${transcript.slice(0, 48)}`);
+  }, []);
+
+  const handleVoiceAudioRecorded = useCallback((audioBlob: Blob) => {
+    const transcript = `Recorded ${Math.max(1, Math.round(audioBlob.size / 1024))}KB voice note for server transcription`;
+    setPromptInputAction(transcript);
+    return Promise.resolve(transcript);
+  }, []);
+
+  const handleVoicePromptSubmit = useCallback(
+    ({ text }: PromptInputMessage) => {
+      const promptSummary = text.trim() || voiceTranscript;
+      setVoicePromptText("");
+      setVoicePromptTurnCount((count) => count + 1);
+      setSubmittedPrompt(promptSummary);
+      setPromptInputAction(
+        `Submitted voice prompt: ${promptSummary.slice(0, 64)}`
+      );
+      toast({
+        description: voiceTranscript,
+        title: "Voice prompt submitted",
+      });
+    },
+    [voiceTranscript]
+  );
+
   const stopRichPrompt = useCallback(() => {
     clearPromptStatusTimers();
     setPromptSubmitStatus("ready");
@@ -560,6 +604,9 @@ export const PreviewApp = () => {
       sliderValue,
       submittedPrompt,
       usedContextTokens,
+      voicePromptTextLength: voicePromptText.length,
+      voicePromptTurnCount,
+      voiceTranscript,
       webSearchEnabled,
     }),
     [
@@ -582,6 +629,9 @@ export const PreviewApp = () => {
       sliderValue,
       submittedPrompt,
       usedContextTokens,
+      voicePromptText.length,
+      voicePromptTurnCount,
+      voiceTranscript,
       webSearchEnabled,
     ]
   );
@@ -1402,6 +1452,85 @@ Plan:
             <p>
               Search: <span>{webSearchEnabled ? "on" : "off"}</span> · Turns:{" "}
               <span>{reasoningPromptTurnCount}</span>
+            </p>
+            <p className="sm:col-span-2">
+              Last prompt action: <span>{promptInputAction}</span>
+            </p>
+          </div>
+        </Section>
+
+        <Section
+          className="lg:col-span-2"
+          description="A voice-capable rich composer that can fill the prompt from Web Speech API results or MediaRecorder fallback transcripts."
+          title="Rich Prompt Input · Voice"
+        >
+          <PromptInput onSubmit={handleVoicePromptSubmit}>
+            <PromptInputHeader>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="default">Voice input</Badge>
+                <Badge variant="outline">Speech + text</Badge>
+                <span className="text-muted-foreground text-xs">
+                  Transcript is appended into the textarea before submit.
+                </span>
+              </div>
+            </PromptInputHeader>
+
+            <PromptInputBody>
+              <PromptInputTextarea
+                name="voice-message"
+                onChange={(event) =>
+                  setVoicePromptText(event.currentTarget.value)
+                }
+                placeholder="Speak or type a prompt for the preview assistant..."
+                value={voicePromptText}
+              />
+            </PromptInputBody>
+
+            <PromptInputFooter className="flex-wrap">
+              <PromptInputTools className="flex-wrap">
+                <SpeechInput
+                  aria-label="Record voice prompt"
+                  lang="en-US"
+                  onAudioRecorded={handleVoiceAudioRecorded}
+                  onTranscriptionChange={handleVoiceTranscriptionChange}
+                  size="icon-sm"
+                  variant="default"
+                />
+
+                <PromptInputButton
+                  onClick={() =>
+                    handleVoiceTranscriptionChange(
+                      "Voice demo transcript: summarize the registry install result."
+                    )
+                  }
+                  tooltip="Insert sample transcript"
+                  variant="outline"
+                >
+                  <MicIcon className="size-4" />
+                  Sample transcript
+                </PromptInputButton>
+
+                <PromptInputButton
+                  aria-pressed={webSearchEnabled}
+                  onClick={toggleWebSearch}
+                  tooltip="Toggle web search"
+                  variant={webSearchEnabled ? "secondary" : "ghost"}
+                >
+                  <GlobeIcon className="size-4" />
+                  Search
+                </PromptInputButton>
+              </PromptInputTools>
+
+              <PromptInputSubmit aria-label="Submit voice prompt" />
+            </PromptInputFooter>
+          </PromptInput>
+
+          <div className="mt-4 grid gap-2 text-muted-foreground text-sm sm:grid-cols-2">
+            <p>
+              Transcript: <span>{voiceTranscript}</span>
+            </p>
+            <p>
+              Voice turns: <span>{voicePromptTurnCount}</span>
             </p>
             <p className="sm:col-span-2">
               Last prompt action: <span>{promptInputAction}</span>
