@@ -199,6 +199,44 @@ const PROMPT_COMPLETED_DELAY_MS = 1600;
 const PROMPT_ERROR_RESET_DELAY_MS = 1200;
 
 type PromptSubmitStatus = "ready" | "submitted" | "streaming" | "error";
+type ReasoningLevel = "off" | "low" | "medium" | "high" | "xhigh" | "max";
+
+const reasoningLevelOptions: {
+  description: string;
+  label: string;
+  value: ReasoningLevel;
+}[] = [
+  {
+    description: "No hidden reasoning budget; fastest response.",
+    label: "Off",
+    value: "off",
+  },
+  {
+    description: "Small planning pass for simple edits.",
+    label: "Low",
+    value: "low",
+  },
+  {
+    description: "Balanced planning for everyday agent work.",
+    label: "Medium",
+    value: "medium",
+  },
+  {
+    description: "Deeper plan and tool-check loop.",
+    label: "High",
+    value: "high",
+  },
+  {
+    description: "Extended multi-step reasoning for risky changes.",
+    label: "XHigh",
+    value: "xhigh",
+  },
+  {
+    description: "Maximum reasoning budget for exhaustive review.",
+    label: "Max",
+    value: "max",
+  },
+];
 
 const createPreviewImageDataUrl = (label: string, accentColor: string) => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200" role="img" aria-label="${label}"><rect width="320" height="200" rx="24" fill="#09090b"/><rect x="24" y="24" width="272" height="152" rx="18" fill="${accentColor}" opacity="0.18"/><circle cx="64" cy="64" r="18" fill="${accentColor}"/><rect x="96" y="50" width="160" height="14" rx="7" fill="#fafafa" opacity="0.86"/><rect x="48" y="108" width="224" height="12" rx="6" fill="#fafafa" opacity="0.58"/><rect x="48" y="132" width="152" height="12" rx="6" fill="#fafafa" opacity="0.36"/><text x="48" y="166" fill="#fafafa" font-family="ui-sans-serif, system-ui" font-size="18" font-weight="700">${label}</text></svg>`;
@@ -304,12 +342,16 @@ export const PreviewApp = () => {
     "No prompt submitted yet"
   );
   const [webSearchEnabled, setWebSearchEnabled] = useState(true);
-  const [reasoningEnabled, setReasoningEnabled] = useState(true);
+  const [reasoningLevel, setReasoningLevel] =
+    useState<ReasoningLevel>("medium");
   const [promptInputAction, setPromptInputAction] = useState(
     "Ready with text, attachments, context, tools, modes, and submit state"
   );
   const [promptText, setPromptText] = useState(
     "Validate the registry install flow and summarize any Base UI interaction regressions."
+  );
+  const [reasoningPromptText, setReasoningPromptText] = useState(
+    "Plan a safe Base UI migration review and list the checks to run before shipping."
   );
   const [richPromptContext, setRichPromptContext] = useState(
     richPromptAttachments
@@ -317,6 +359,7 @@ export const PreviewApp = () => {
   const [promptSubmitStatus, setPromptSubmitStatus] =
     useState<PromptSubmitStatus>("ready");
   const [promptTurnCount, setPromptTurnCount] = useState(0);
+  const [reasoningPromptTurnCount, setReasoningPromptTurnCount] = useState(0);
   const [lastPromptSummary, setLastPromptSummary] = useState(
     "No live prompt turn yet"
   );
@@ -345,6 +388,10 @@ export const PreviewApp = () => {
     BASE_INPUT_TOKENS +
     richPromptContext.length * CONTEXT_ITEM_TOKEN_ESTIMATE +
     Math.ceil(promptText.length / CHARACTERS_PER_TOKEN_ESTIMATE);
+  const reasoningLevelOption =
+    reasoningLevelOptions.find((option) => option.value === reasoningLevel) ??
+    reasoningLevelOptions[2];
+  const reasoningEnabled = reasoningLevel !== "off";
   const contextReasoningTokens = reasoningEnabled
     ? REASONING_TOKEN_ESTIMATE
     : 0;
@@ -426,6 +473,26 @@ export const PreviewApp = () => {
     ]
   );
 
+  const handleReasoningPromptSubmit = useCallback(
+    ({ text }: PromptInputMessage) => {
+      const trimmedText = text.trim();
+      setReasoningPromptText("");
+      setReasoningPromptTurnCount((count) => count + 1);
+      setPromptInputAction(
+        `Queued ${reasoningLevelOption.label} reasoning prompt${
+          trimmedText ? `: ${trimmedText.slice(0, 48)}` : ""
+        }`
+      );
+      toast({
+        description: `${reasoningLevelOption.label} reasoning · ${
+          webSearchEnabled ? "web search on" : "web search off"
+        }`,
+        title: "Reasoning prompt submitted",
+      });
+    },
+    [reasoningLevelOption.label, webSearchEnabled]
+  );
+
   const stopRichPrompt = useCallback(() => {
     clearPromptStatusTimers();
     setPromptSubmitStatus("ready");
@@ -452,11 +519,24 @@ export const PreviewApp = () => {
   }, []);
 
   const toggleReasoning = useCallback(() => {
-    setReasoningEnabled((value) => {
-      const nextValue = !value;
-      setPromptInputAction(`Reasoning ${nextValue ? "enabled" : "disabled"}`);
+    setReasoningLevel((value) => {
+      const nextValue = value === "off" ? "medium" : "off";
+      setPromptInputAction(
+        nextValue === "off"
+          ? "Reasoning disabled"
+          : "Reasoning enabled at Medium"
+      );
       return nextValue;
     });
+  }, []);
+
+  const handleReasoningLevelChange = useCallback((value: string) => {
+    const nextLevel = value as ReasoningLevel;
+    const nextOption =
+      reasoningLevelOptions.find((option) => option.value === nextLevel) ??
+      reasoningLevelOptions[2];
+    setReasoningLevel(nextLevel);
+    setPromptInputAction(`Reasoning level set to ${nextOption.label}`);
   }, []);
 
   const status = useMemo(
@@ -470,6 +550,10 @@ export const PreviewApp = () => {
       promptTextLength: promptText.length,
       promptTurnCount,
       reasoningEnabled,
+      reasoningLevel,
+      reasoningLevelLabel: reasoningLevelOption.label,
+      reasoningPromptTextLength: reasoningPromptText.length,
+      reasoningPromptTurnCount,
       richPromptContext: richPromptContext.map(getRichPromptContextLabel),
       selectedModel,
       selectedModelLabel: selectedModelOption.label,
@@ -488,6 +572,10 @@ export const PreviewApp = () => {
       promptText.length,
       promptTurnCount,
       reasoningEnabled,
+      reasoningLevel,
+      reasoningLevelOption.label,
+      reasoningPromptText.length,
+      reasoningPromptTurnCount,
       richPromptContext,
       selectedModel,
       selectedModelOption.label,
@@ -1111,6 +1199,7 @@ Plan:
                   aria-pressed={webSearchEnabled}
                   onClick={toggleWebSearch}
                   tooltip="Toggle web search"
+                  variant={webSearchEnabled ? "secondary" : "ghost"}
                 >
                   <GlobeIcon className="size-4" />
                   Search
@@ -1120,9 +1209,10 @@ Plan:
                   aria-pressed={reasoningEnabled}
                   onClick={toggleReasoning}
                   tooltip="Toggle reasoning"
+                  variant={reasoningEnabled ? "secondary" : "ghost"}
                 >
                   <SparklesIcon className="size-4" />
-                  Reason
+                  Reason {reasoningLevelOption.label}
                 </PromptInputButton>
 
                 <PromptInputSelect
@@ -1204,13 +1294,117 @@ Plan:
             </p>
             <p>
               Web search: <span>{webSearchEnabled ? "on" : "off"}</span> ·
-              Reasoning: <span>{reasoningEnabled ? "on" : "off"}</span>
+              Reasoning: <span>{reasoningLevelOption.label}</span>
             </p>
             <p className="sm:col-span-2">
               Last prompt action: <span>{promptInputAction}</span>
             </p>
             <p className="sm:col-span-2">
               Last submitted prompt: <span>{submittedPrompt}</span>
+            </p>
+          </div>
+        </Section>
+
+        <Section
+          className="lg:col-span-2"
+          description="A second rich composer focused on explicit reasoning levels: off, low, medium, high, xhigh, and max."
+          title="Rich Prompt Input · Reasoning Levels"
+        >
+          <PromptInput onSubmit={handleReasoningPromptSubmit}>
+            <PromptInputHeader>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={reasoningEnabled ? "default" : "secondary"}>
+                  {reasoningEnabled ? "Reasoning on" : "Reasoning off"}
+                </Badge>
+                <Badge variant="outline">
+                  Level: {reasoningLevelOption.label}
+                </Badge>
+                <span className="text-muted-foreground text-xs">
+                  {reasoningLevelOption.description}
+                </span>
+              </div>
+            </PromptInputHeader>
+
+            <PromptInputBody>
+              <PromptInputTextarea
+                name="reasoning-message"
+                onChange={(event) =>
+                  setReasoningPromptText(event.currentTarget.value)
+                }
+                placeholder="Ask for a plan, review, or implementation strategy with a selected reasoning level..."
+                value={reasoningPromptText}
+              />
+            </PromptInputBody>
+
+            <PromptInputFooter className="flex-wrap">
+              <PromptInputTools className="flex-wrap">
+                <PromptInputButton
+                  aria-pressed={webSearchEnabled}
+                  onClick={toggleWebSearch}
+                  tooltip="Toggle web search"
+                  variant={webSearchEnabled ? "secondary" : "ghost"}
+                >
+                  <GlobeIcon className="size-4" />
+                  Search
+                </PromptInputButton>
+
+                <PromptInputButton
+                  aria-pressed={reasoningEnabled}
+                  onClick={toggleReasoning}
+                  tooltip="Toggle reasoning"
+                  variant={reasoningEnabled ? "secondary" : "ghost"}
+                >
+                  <SparklesIcon className="size-4" />
+                  {reasoningEnabled ? reasoningLevelOption.label : "Off"}
+                </PromptInputButton>
+
+                <PromptInputSelect
+                  onValueChange={handleReasoningLevelChange}
+                  value={reasoningLevel}
+                >
+                  <PromptInputSelectTrigger aria-label="Choose reasoning level">
+                    <PromptInputSelectValue>
+                      {(value) =>
+                        reasoningLevelOptions.find(
+                          (option) => option.value === value
+                        )?.label ?? "Reasoning"
+                      }
+                    </PromptInputSelectValue>
+                  </PromptInputSelectTrigger>
+                  <PromptInputSelectContent>
+                    {reasoningLevelOptions.map((option) => (
+                      <PromptInputSelectItem
+                        key={option.value}
+                        label={option.label}
+                        value={option.value}
+                      >
+                        <div className="flex min-w-0 flex-col text-left">
+                          <span className="truncate">{option.label}</span>
+                          <span className="truncate text-muted-foreground text-xs">
+                            {option.value} · {option.description}
+                          </span>
+                        </div>
+                      </PromptInputSelectItem>
+                    ))}
+                  </PromptInputSelectContent>
+                </PromptInputSelect>
+              </PromptInputTools>
+
+              <PromptInputSubmit aria-label="Submit reasoning prompt" />
+            </PromptInputFooter>
+          </PromptInput>
+
+          <div className="mt-4 grid gap-2 text-muted-foreground text-sm sm:grid-cols-2">
+            <p>
+              Reasoning level: <span>{reasoningLevelOption.label}</span> ·
+              Value: <span>{reasoningLevel}</span>
+            </p>
+            <p>
+              Search: <span>{webSearchEnabled ? "on" : "off"}</span> · Turns:{" "}
+              <span>{reasoningPromptTurnCount}</span>
+            </p>
+            <p className="sm:col-span-2">
+              Last prompt action: <span>{promptInputAction}</span>
             </p>
           </div>
         </Section>

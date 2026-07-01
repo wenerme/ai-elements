@@ -1131,7 +1131,10 @@ export const PromptInputButton = ({
 
   const button = (
     <InputGroupButton
-      className={cn(className)}
+      className={cn(
+        "aria-pressed:bg-primary/10 aria-pressed:text-primary aria-pressed:ring-1 aria-pressed:ring-primary/20 aria-pressed:hover:bg-primary/15",
+        className
+      )}
       size={newSize}
       type="button"
       variant={variant}
