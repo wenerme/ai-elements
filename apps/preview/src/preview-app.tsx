@@ -546,19 +546,19 @@ export const PreviewApp = () => {
         description="Static shadcn registry files are generated into this GitHub Pages site during preview builds."
         title="Registry Usage"
       >
-        <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
-          <div className="space-y-3">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="min-w-0 space-y-3">
             <p className="text-sm leading-6">
               Use this Pages deployment as a shadcn registry host. The registry
               index and individual item JSON files are served as static assets,
               so they work without a Next.js API route.
             </p>
-            <pre className="overflow-x-auto rounded-md bg-muted p-4 text-sm">
+            <pre className="whitespace-pre-wrap break-all rounded-md bg-muted p-4 text-sm">
               npx shadcn@latest add
               https://wenerme.github.io/ai-elements/r/prompt-input.json
             </pre>
           </div>
-          <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
+          <div className="min-w-0 space-y-2 rounded-lg border bg-muted/40 p-3">
             {registryExamples.map((example) => (
               <a
                 className="block rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
