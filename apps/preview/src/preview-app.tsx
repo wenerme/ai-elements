@@ -200,13 +200,31 @@ const PROMPT_ERROR_RESET_DELAY_MS = 1200;
 
 type PromptSubmitStatus = "ready" | "submitted" | "streaming" | "error";
 
+const createPreviewImageDataUrl = (label: string, accentColor: string) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200" role="img" aria-label="${label}"><rect width="320" height="200" rx="24" fill="#09090b"/><rect x="24" y="24" width="272" height="152" rx="18" fill="${accentColor}" opacity="0.18"/><circle cx="64" cy="64" r="18" fill="${accentColor}"/><rect x="96" y="50" width="160" height="14" rx="7" fill="#fafafa" opacity="0.86"/><rect x="48" y="108" width="224" height="12" rx="6" fill="#fafafa" opacity="0.58"/><rect x="48" y="132" width="152" height="12" rx="6" fill="#fafafa" opacity="0.36"/><text x="48" y="166" fill="#fafafa" font-family="ui-sans-serif, system-ui" font-size="18" font-weight="700">${label}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+};
+
+const previewScreenshotUrl = createPreviewImageDataUrl(
+  "Preview Screenshot",
+  "#38bdf8"
+);
+const designReviewImageUrl = createPreviewImageDataUrl(
+  "Design Review",
+  "#a78bfa"
+);
+const interactivePreviewImageUrl = createPreviewImageDataUrl(
+  "Interactive Preview",
+  "#34d399"
+);
+
 const richPromptAttachments: AttachmentData[] = [
   {
     filename: "preview-screenshot.png",
     id: "preview-screenshot",
     mediaType: "image/png",
     type: "file",
-    url: "#preview-screenshot",
+    url: previewScreenshotUrl,
   },
   {
     filename: "acceptance-notes.md",
@@ -1046,7 +1064,7 @@ Plan:
                           id: "design-review",
                           mediaType: "image/png",
                           type: "file",
-                          url: "#design-review",
+                          url: designReviewImageUrl,
                         })
                       }
                     >
@@ -1060,7 +1078,7 @@ Plan:
                           id: "interactive-preview",
                           mediaType: "image/png",
                           type: "file",
-                          url: "#interactive-preview",
+                          url: interactivePreviewImageUrl,
                         })
                       }
                     >
