@@ -258,6 +258,9 @@ export const buildAcceptanceSummary = (state: AgentDemoState) => ({
   nextAction: "ship-gh-pages-preview",
 });`;
 
+const getSliderNumberValue = (value: number | number[]): number =>
+  Array.isArray(value) ? (value[0] ?? 0) : value;
+
 const getRichPromptContextLabel = (attachment: AttachmentData): string => {
   if (attachment.type === "source-document") {
     return attachment.title || attachment.filename || "Source";
@@ -294,7 +297,7 @@ const Section = ({
 export const PreviewApp = () => {
   const [selectedModel, setSelectedModel] = useState("gpt-5.1");
   const [promptMode, setPromptMode] = useState("agent");
-  const [sliderValue, setSliderValue] = useState([42]);
+  const [sliderValue, setSliderValue] = useState(42);
   const [progressValue, setProgressValue] = useState(42);
   const [dropdownAction, setDropdownAction] = useState("No action yet");
   const [submittedPrompt, setSubmittedPrompt] = useState(
@@ -470,7 +473,7 @@ export const PreviewApp = () => {
       richPromptContext: richPromptContext.map(getRichPromptContextLabel),
       selectedModel,
       selectedModelLabel: selectedModelOption.label,
-      sliderValue: sliderValue[0] ?? 0,
+      sliderValue,
       submittedPrompt,
       usedContextTokens,
       webSearchEnabled,
@@ -900,8 +903,9 @@ Plan:
               max={100}
               min={0}
               onValueChange={(value) => {
-                setSliderValue(value);
-                setProgressValue(value[0] ?? 0);
+                const nextValue = getSliderNumberValue(value);
+                setSliderValue(nextValue);
+                setProgressValue(nextValue);
               }}
               value={sliderValue}
             />
